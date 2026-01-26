@@ -1,39 +1,47 @@
 import { test, expect } from "@playwright/test";
+import { DevToolsPage } from "./page-objects/DevToolsPage";
 
 test.describe("MSW DevTools Plugin", () => {
+  let devToolsPage: DevToolsPage;
+
   test.beforeEach(async ({ page }) => {
-    await page.goto("/");
+    devToolsPage = new DevToolsPage(page);
+    await devToolsPage.goto();
   });
 
-  test("should show the devtools toggle button", async ({ page }) => {
-    const toggleButton = page.getByRole("button", {
-      name: "Toggle MSW DevTools",
-    });
-    await expect(toggleButton).toBeVisible();
-    await expect(toggleButton).toHaveAttribute("title", /MSW Handler Registry/);
+  test("should show the devtools toggle button", async () => {
+    await devToolsPage.expectVisible();
+    await expect(devToolsPage.toggleButton).toHaveAttribute(
+      "title",
+      /MSW Handler Registry/,
+    );
   });
 
-  test("should open the devtools modal when clicking the toggle button", async ({
-    page,
-  }) => {
-    await page.getByRole("button", { name: "Toggle MSW DevTools" }).click();
-
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
-
-    const title = dialog.getByRole("heading", { name: "MSW Handler Registry" });
-    await expect(title).toBeVisible();
+  test("should open the devtools modal when clicking the toggle button", async () => {
+    await devToolsPage.toggle();
+    await devToolsPage.expectModalVisible();
+    await devToolsPage.expectModalTitle("MSW Handler Registry");
   });
 
-  test("should close the devtools modal when clicking the close button", async ({
-    page,
-  }) => {
-    await page.getByRole("button", { name: "Toggle MSW DevTools" }).click();
+  test("should close the devtools modal when clicking the close button", async () => {
+    await devToolsPage.toggle();
+    await devToolsPage.expectModalVisible();
+    await devToolsPage.close();
+    await devToolsPage.expectModalHidden();
+  });
 
-    const dialog = page.getByRole("dialog");
-    await expect(dialog).toBeVisible();
+  test("should display registered handlers", async () => {
+    await devToolsPage.toggle();
 
-    await dialog.getByRole("button", { name: "Close" }).click();
-    await expect(dialog).not.toBeVisible();
+    // Check users handler
+    await devToolsPage.expectHandler("users", "GET", "/api/users");
+
+    // Check scenarios for users
+    await devToolsPage.expectScenario("users", "default");
+    await devToolsPage.expectScenario("users", "empty");
+    await devToolsPage.expectScenario("users", "ServerError");
+
+    // Check products handler
+    await devToolsPage.expectHandler("products", "POST", "/api/products");
   });
 });
