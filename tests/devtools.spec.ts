@@ -54,4 +54,52 @@ test.describe("MSW DevTools Plugin", () => {
     // Check products handler
     await devToolsPage.expectHandler("products", "POST", "/api/products");
   });
+
+  test("should filter handlers by name, url, and method", async ({ page }) => {
+    await devToolsPage.toggle();
+
+    // Verify both are present initially
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "users" }),
+    ).toBeVisible();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "products" }),
+    ).toBeVisible();
+
+    // Filter by name (key)
+    await devToolsPage.filter("users");
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "users" }),
+    ).toBeVisible();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "products" }),
+    ).toBeHidden();
+
+    // Filter by URL
+    await devToolsPage.filter("/api/products");
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "users" }),
+    ).toBeHidden();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "products" }),
+    ).toBeVisible();
+
+    // Filter by Method
+    await devToolsPage.filter("GET");
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "users" }),
+    ).toBeVisible();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "products" }),
+    ).toBeHidden();
+
+    // Clear filter
+    await devToolsPage.clearFilter();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "users" }),
+    ).toBeVisible();
+    await expect(
+      devToolsPage.dialog.locator("tr", { hasText: "products" }),
+    ).toBeVisible();
+  });
 });

@@ -6,6 +6,7 @@ export class DevToolsPage {
   readonly dialog: Locator;
   readonly closeButton: Locator;
   readonly registryTable: Locator;
+  readonly searchInput: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -15,6 +16,17 @@ export class DevToolsPage {
     this.dialog = page.getByRole("dialog");
     this.closeButton = this.dialog.getByRole("button", { name: "Close" });
     this.registryTable = this.dialog.locator("table.registry-table");
+    this.searchInput = this.dialog.getByPlaceholder(
+      "Filter by key, URL or method...",
+    );
+  }
+
+  async filter(query: string) {
+    await this.searchInput.fill(query);
+  }
+
+  async clearFilter() {
+    await this.searchInput.fill("");
   }
 
   async goto() {
