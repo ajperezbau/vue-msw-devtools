@@ -8,6 +8,62 @@
   </head>
   <body>
     <div id="app"></div>
+
+    <div
+      id="test-interface"
+      style="
+        padding: 2rem;
+        font-family: sans-serif;
+        border-top: 1px solid #eee;
+        margin-top: 2rem;
+      "
+    >
+      <h3>Dev Test Interface</h3>
+      <div style="display: flex; gap: 1rem; margin-bottom: 1rem">
+        <button id="fetch-users">Fetch Users (GET)</button>
+        <button id="fetch-products">Fetch Products (POST)</button>
+      </div>
+      <div style="background: #f5f5f5; padding: 1rem; border-radius: 4px">
+        <strong>Last Response:</strong>
+        <pre
+          id="response-output"
+          style="margin-top: 1rem; white-space: pre-wrap"
+        >
+No requests yet</pre
+        >
+      </div>
+    </div>
+
+    <script type="module">
+      const output = document.getElementById("response-output");
+
+      document
+        .getElementById("fetch-users")
+        ?.addEventListener("click", async () => {
+          if (output) output.innerText = "Loading users...";
+          try {
+            const response = await fetch("/api/users");
+            const data = await response.json();
+            if (output) output.innerText = JSON.stringify(data, null, 2);
+          } catch (err) {
+            if (output) output.innerText = `Error: ${err.message}`;
+          }
+        });
+
+      document
+        .getElementById("fetch-products")
+        ?.addEventListener("click", async () => {
+          if (output) output.innerText = "Posting product...";
+          try {
+            const response = await fetch("/api/products", { method: "POST" });
+            const data = await response.json();
+            if (output) output.innerText = JSON.stringify(data, null, 2);
+          } catch (err) {
+            if (output) output.innerText = `Error: ${err.message}`;
+          }
+        });
+    </script>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

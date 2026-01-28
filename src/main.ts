@@ -5,6 +5,7 @@ import {
   setupMswRegistry,
 } from "./index";
 import { setupWorker } from "msw/browser";
+import { HttpResponse } from "msw";
 
 const app = createApp({});
 
@@ -13,18 +14,23 @@ new MswHandlerBuilder("users")
   .url("/api/users")
   .method("get")
   .scenario("default", () => {
-    return new Response(JSON.stringify([{ id: 1, name: "John" }]), {
-      status: 200,
-    });
+    return HttpResponse.json([{ id: 1, name: "John" }]);
   })
   .scenario("empty", () => {
-    return new Response(JSON.stringify([]), { status: 200 });
+    return HttpResponse.json([]);
   })
   .build();
 
-new MswHandlerBuilder("products").url("/api/products").method("post").build();
+new MswHandlerBuilder("products")
+  .url("/api/products")
+  .method("post")
+  .scenario("default", () => {
+    return HttpResponse.json({ success: true, id: 123 }, { status: 201 });
+  })
+  .build();
 
 const worker = setupWorker();
+await worker.start();
 setupMswRegistry(worker);
 
 app.use(MswDevtoolsPlugin);
