@@ -55,7 +55,11 @@ No requests yet</pre
         ?.addEventListener("click", async () => {
           if (output) output.innerText = "Posting product...";
           try {
-            const response = await fetch("/api/products", { method: "POST" });
+            const response = await fetch("/api/products", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name: "New Product", price: 99.99 }),
+            });
             const data = await response.json();
             if (output) output.innerText = JSON.stringify(data, null, 2);
           } catch (err) {

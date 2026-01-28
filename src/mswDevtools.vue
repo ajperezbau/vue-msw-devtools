@@ -443,6 +443,13 @@
                 <div class="log-url" :title="entry.url">
                   {{ entry.url }}
                 </div>
+                <div
+                  v-if="entry.method !== 'GET' && entry.requestBody"
+                  class="log-request-preview"
+                  :title="JSON.stringify(entry.requestBody)"
+                >
+                  {{ formatPreview(entry.requestBody) }}
+                </div>
                 <div class="log-scenario-info">
                   <div class="log-key-wrapper">
                     <span class="log-key">{{ entry.key }}</span>
@@ -817,6 +824,12 @@ const formatBody = (body: unknown) => {
   if (body === undefined || body === null) return "";
   if (typeof body === "string") return body;
   return JSON.stringify(body, null, 2);
+};
+
+const formatPreview = (body: unknown) => {
+  if (body === undefined || body === null) return "";
+  const text = typeof body === "string" ? body : JSON.stringify(body);
+  return text.length > 60 ? text.substring(0, 60) + "..." : text;
 };
 
 const formatTime = (timestamp: number) => {
@@ -1399,6 +1412,21 @@ const filteredActivityLog = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.log-request-preview {
+  font-family: inherit;
+  font-size: 0.75rem;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  max-width: 250px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0 1rem;
+  border: 1px solid #e5e7eb;
 }
 
 .log-scenario-info {

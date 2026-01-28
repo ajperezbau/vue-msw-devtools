@@ -258,6 +258,22 @@ export class MswHandlerBuilder<T extends string = "default"> {
     const factory = (resolver: (url: string) => string) =>
       http[method](resolver(url), async (info: any) => {
         const { request } = info;
+
+        // Capture request body (cloning to avoid consuming the stream)
+        let requestBody: unknown;
+        try {
+          const clonedRequest = request.clone();
+          const contentType = clonedRequest.headers.get("content-type");
+          if (contentType?.includes("application/json")) {
+            requestBody = await clonedRequest.json();
+          } else {
+            const text = await clonedRequest.text();
+            requestBody = text || undefined;
+          }
+        } catch {
+          requestBody = undefined;
+        }
+
         const currentUrlParams = new URLSearchParams(window.location.search);
         const activeScenarioKey =
           currentUrlParams.get(key) || scenarioState[key] || defaultScenario;
@@ -308,21 +324,6 @@ export class MswHandlerBuilder<T extends string = "default"> {
               )) as HttpResponse<DefaultBodyType>;
             }
           }
-        }
-
-        // Capture request body (cloning to avoid consuming the stream)
-        let requestBody: unknown;
-        try {
-          const clonedRequest = request.clone();
-          const contentType = clonedRequest.headers.get("content-type");
-          if (contentType?.includes("application/json")) {
-            requestBody = await clonedRequest.json();
-          } else {
-            const text = await clonedRequest.text();
-            requestBody = text || undefined;
-          }
-        } catch {
-          requestBody = undefined;
         }
 
         const activeDelay =
