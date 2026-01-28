@@ -8,6 +8,8 @@ export class DevToolsPage {
   readonly registryTable: Locator;
   readonly searchInput: Locator;
   readonly globalDelayInput: Locator;
+  readonly fetchUsersButton: Locator;
+  readonly fetchProductsButton: Locator;
 
   constructor(page: Page) {
     this.page = page;
@@ -21,6 +23,13 @@ export class DevToolsPage {
       "Filter by key, URL or method...",
     );
     this.globalDelayInput = this.dialog.locator("#global-delay");
+    this.fetchUsersButton = page.locator("#fetch-users");
+    this.fetchProductsButton = page.locator("#fetch-products");
+  }
+
+  async switchTab(tab: "Registry" | "Activity Log") {
+    // Note: The UI shows "Activity Log (N)", so we use part of the name
+    await this.dialog.getByRole("button", { name: tab, exact: false }).click();
   }
 
   async setGlobalDelay(value: number) {
@@ -56,9 +65,18 @@ export class DevToolsPage {
   }
 
   async pressShortcut() {
-    const isMac = process.platform === "darwin";
-    const modifier = isMac ? "Meta" : "Control";
-    await this.page.keyboard.press(`${modifier}+Shift+M`);
+    // Standardizing the shortcut for tests.
+    // We use a specific sequence to ensure the modifier is held.
+    await this.page.bringToFront();
+    // Use focus on the body to ensure we are listening to keydown
+    await this.page.focus("body");
+
+    const modifier = process.platform === "darwin" ? "Meta" : "Control";
+    await this.page.keyboard.down(modifier);
+    await this.page.keyboard.down("Shift");
+    await this.page.keyboard.press("M");
+    await this.page.keyboard.up("Shift");
+    await this.page.keyboard.up(modifier);
   }
 
   async close() {
@@ -121,5 +139,54 @@ export class DevToolsPage {
     await expect(
       select.locator("option", { hasText: scenarioName }),
     ).toBeAttached();
+  }
+
+  // Activity Log methods
+  async getLogEntry(url: string) {
+    return this.dialog.locator(".log-entry", { hasText: url }).first();
+  }
+
+  async expectLogEntry(details: {
+    method: string;
+    url: string;
+    key: string;
+    scenario: string;
+    status: number;
+  }) {
+    const entry = await this.getLogEntry(details.url);
+    await expect(entry).toBeVisible();
+    await expect(entry.locator(".method-badge")).toHaveText(details.method);
+    await expect(entry.locator(".log-key")).toHaveText(details.key);
+    await expect(entry.locator(".log-scenario")).toContainText(
+      details.scenario,
+    );
+    await expect(entry.locator(".status-badge")).toHaveText(
+      details.status.toString(),
+    );
+  }
+
+  async expandLogEntry(url: string) {
+    const entry = await this.getLogEntry(url);
+    await entry.locator(".log-entry-header").click();
+  }
+
+  async expectLogRequestPreview(url: string, previewText: string) {
+    const entry = await this.getLogEntry(url);
+    const preview = entry.locator(".log-request-preview");
+    await expect(preview).toContainText(previewText);
+  }
+
+  async expectLogDetails(
+    url: string,
+    section: "Request Body" | "Response Body",
+    content: string,
+  ) {
+    const entry = await this.getLogEntry(url);
+    const sectionLocator = entry.locator(".details-section", {
+      hasText: section,
+    });
+    await expect(sectionLocator.locator(".details-content")).toContainText(
+      content,
+    );
   }
 }
