@@ -18,13 +18,15 @@ export class DevToolsPage {
     });
     this.dialog = page.getByRole("dialog");
     this.closeButton = this.dialog.getByRole("button", { name: "Close" });
-    this.registryTable = this.dialog.locator("table.registry-table");
+    this.registryTable = this.dialog.getByRole("table");
     this.searchInput = this.dialog.getByPlaceholder(
       "Filter by key, URL or method...",
     );
-    this.globalDelayInput = this.dialog.locator("#global-delay");
-    this.fetchUsersButton = page.locator("#fetch-users");
-    this.fetchProductsButton = page.locator("#fetch-products");
+    this.globalDelayInput = this.dialog.getByLabel(/Global Delay:/);
+    this.fetchUsersButton = page.getByRole("button", { name: /Fetch Users/ });
+    this.fetchProductsButton = page.getByRole("button", {
+      name: /Fetch Products/,
+    });
   }
 
   async switchTab(tab: "Registry" | "Activity Log") {
@@ -44,7 +46,7 @@ export class DevToolsPage {
 
   async setHandlerDelay(handlerName: string, value: number) {
     const row = await this.getHandlerRow(handlerName);
-    const input = row.locator(".handler-delay-input");
+    const input = row.getByRole("spinbutton");
     await input.fill(value.toString());
   }
 
@@ -123,7 +125,7 @@ export class DevToolsPage {
   }
 
   async getHandlerRow(name: string) {
-    return this.dialog.locator("tr", { hasText: name });
+    return this.registryTable.getByRole("row", { name });
   }
 
   async expectHandler(name: string, method: string, url: string) {
@@ -143,7 +145,7 @@ export class DevToolsPage {
 
   // Activity Log methods
   async getLogEntry(url: string) {
-    return this.dialog.locator(".log-entry", { hasText: url }).first();
+    return this.dialog.getByRole("listitem").filter({ hasText: url }).first();
   }
 
   async expectLogEntry(details: {
@@ -155,25 +157,26 @@ export class DevToolsPage {
   }) {
     const entry = await this.getLogEntry(details.url);
     await expect(entry).toBeVisible();
-    await expect(entry.locator(".method-badge")).toHaveText(details.method);
-    await expect(entry.locator(".log-key")).toHaveText(details.key);
-    await expect(entry.locator(".log-scenario")).toContainText(
-      details.scenario,
-    );
-    await expect(entry.locator(".status-badge")).toHaveText(
-      details.status.toString(),
-    );
+    await expect(
+      entry.getByText(details.method, { exact: true }),
+    ).toBeVisible();
+    await expect(entry.getByText(details.key, { exact: true })).toBeVisible();
+    await expect(entry.getByText(details.scenario)).toBeVisible();
+    await expect(
+      entry.getByText(details.status.toString(), { exact: true }),
+    ).toBeVisible();
   }
 
   async expandLogEntry(url: string) {
     const entry = await this.getLogEntry(url);
-    await entry.locator(".log-entry-header").click();
+    // There isn't a single button for header, it's a div with click handler.
+    // We can click the URL text or the entry itself.
+    await entry.getByText(url).click();
   }
 
   async expectLogRequestPreview(url: string, previewText: string) {
     const entry = await this.getLogEntry(url);
-    const preview = entry.locator(".log-request-preview");
-    await expect(preview).toContainText(previewText);
+    await expect(entry.getByText(previewText)).toBeVisible();
   }
 
   async expectLogDetails(
@@ -182,11 +185,7 @@ export class DevToolsPage {
     content: string,
   ) {
     const entry = await this.getLogEntry(url);
-    const sectionLocator = entry.locator(".details-section", {
-      hasText: section,
-    });
-    await expect(sectionLocator.locator(".details-content")).toContainText(
-      content,
-    );
+    const sectionLocator = entry.getByRole("region", { name: section });
+    await expect(sectionLocator).toContainText(content);
   }
 }

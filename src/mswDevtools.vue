@@ -423,11 +423,12 @@
                 : "No requests recorded yet."
             }}
           </div>
-          <div v-else class="log-list">
+          <div v-else class="log-list" role="list">
             <div
               v-for="entry in filteredActivityLog"
               :key="entry.id"
               class="log-entry"
+              role="listitem"
               :class="{
                 'is-expanded': expandedLogId === entry.id,
                 'is-error': entry.status >= 400,
@@ -570,9 +571,13 @@
                   </div>
                 </div>
 
-                <div v-if="entry.requestBody" class="details-section">
+                <section
+                  v-if="entry.requestBody"
+                  class="details-section"
+                  aria-label="Request Body"
+                >
                   <div class="details-header">
-                    <div class="details-title">Request Body</div>
+                    <h4 class="details-title">Request Body</h4>
                     <div class="details-actions">
                       <button
                         type="button"
@@ -593,10 +598,14 @@
                       getFilteredJson(entry.requestBody, logSearchPath),
                     )
                   }}</pre>
-                </div>
-                <div v-if="entry.responseBody" class="details-section">
+                </section>
+                <section
+                  v-if="entry.responseBody"
+                  class="details-section"
+                  aria-label="Response Body"
+                >
                   <div class="details-header">
-                    <div class="details-title">Response Body</div>
+                    <h4 class="details-title">Response Body</h4>
                     <div class="details-actions">
                       <button
                         type="button"
@@ -624,7 +633,7 @@
                       getFilteredJson(entry.responseBody, logSearchPath),
                     )
                   }}</pre>
-                </div>
+                </section>
               </div>
             </div>
           </div>

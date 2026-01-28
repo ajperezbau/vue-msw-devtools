@@ -59,48 +59,28 @@ test.describe("MSW DevTools Plugin", () => {
     await devToolsPage.toggle();
 
     // Verify both are present initially
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "users" }),
-    ).toBeVisible();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "products" }),
-    ).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("users")).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("products")).toBeVisible();
 
     // Filter by name (key)
     await devToolsPage.filter("users");
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "users" }),
-    ).toBeVisible();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "products" }),
-    ).toBeHidden();
+    await expect(await devToolsPage.getHandlerRow("users")).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("products")).toBeHidden();
 
     // Filter by URL
     await devToolsPage.filter("/api/products");
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "users" }),
-    ).toBeHidden();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "products" }),
-    ).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("users")).toBeHidden();
+    await expect(await devToolsPage.getHandlerRow("products")).toBeVisible();
 
     // Filter by Method
     await devToolsPage.filter("GET");
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "users" }),
-    ).toBeVisible();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "products" }),
-    ).toBeHidden();
+    await expect(await devToolsPage.getHandlerRow("users")).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("products")).toBeHidden();
 
     // Clear filter
     await devToolsPage.clearFilter();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "users" }),
-    ).toBeVisible();
-    await expect(
-      devToolsPage.dialog.locator("tr", { hasText: "products" }),
-    ).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("users")).toBeVisible();
+    await expect(await devToolsPage.getHandlerRow("products")).toBeVisible();
   });
 
   // TODO: those tests are flaky/hard to stabilize, review in another moment
