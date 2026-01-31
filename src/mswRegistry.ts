@@ -116,6 +116,28 @@ export const setupMswRegistry = (
   mswInstance = instance;
   baseHandlers = initialHandlers;
   if (resolver) urlResolver = resolver;
+
+  // Auto-discover handlers already present in MSW
+  if (typeof instance.listHandlers === "function") {
+    const existingHandlers = instance.listHandlers();
+    existingHandlers.forEach((handler: any) => {
+      // Small check to avoid internal or already managed handlers
+      if (!handler.info || !handler.info.path) return;
+
+      const { path, method } = handler.info;
+      const key = `${method} ${path}`;
+
+      // If it's not already registered by us, register it as a "Static" scenario
+      if (!registeredHandlers.some((h) => h.key === key)) {
+        register(key)
+          .url(path)
+          .method(method.toLowerCase())
+          .scenario("original", handler.resolver || handler.run)
+          .build();
+      }
+    });
+  }
+
   refreshHandlers();
 };
 
@@ -183,7 +205,7 @@ watch(globalDelay, (newDelay) => {
 export class MswHandlerBuilder<T extends string = "default"> {
   private _key: string;
   private _url: string = "";
-  private _method: "get" | "post" | "put" | "delete" = "get";
+  private _method: "get" | "post" | "put" | "delete" | "patch" = "get";
   private _scenarios: Record<string, HttpResponseResolver> = {
     ...BUILT_IN_SCENARIOS,
   };
@@ -204,7 +226,7 @@ export class MswHandlerBuilder<T extends string = "default"> {
     return this;
   }
 
-  method(value: "get" | "post" | "put" | "delete") {
+  method(value: "get" | "post" | "put" | "delete" | "patch") {
     this._method = value;
     return this;
   }
@@ -420,3 +442,33 @@ export const createOrchestratedHandler = <
 
 // Backward compatibility alias
 export const createScenarioHandler = createOrchestratedHandler;
+
+export const defineHandlers = (
+  configs: Record<
+    string,
+    {
+      url: string;
+      method?: "get" | "post" | "put" | "patch" | "delete";
+      scenarios: Record<string, HttpResponseResolver>;
+      defaultScenario?: string;
+      priority?: number;
+    }
+  >,
+) => {
+  return Object.entries(configs).map(([key, config]) => {
+    let builder = register(key)
+      .url(config.url)
+      .method(config.method || "get")
+      .priority(config.priority || 0);
+
+    if (config.defaultScenario) {
+      builder.defaultScenario(config.defaultScenario);
+    }
+
+    Object.entries(config.scenarios).forEach(([name, resolver]) => {
+      builder.scenario(name, resolver);
+    });
+
+    return builder.build();
+  });
+};

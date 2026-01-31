@@ -1,11 +1,7 @@
 import { createApp } from "vue";
-import {
-  MswDevtoolsPlugin,
-  MswHandlerBuilder,
-  setupMswRegistry,
-} from "./index";
+import { MswDevtoolsPlugin, MswHandlerBuilder } from "./index";
 import { setupWorker } from "msw/browser";
-import { HttpResponse } from "msw";
+import { http, HttpResponse } from "msw";
 
 const app = createApp({});
 
@@ -29,9 +25,12 @@ new MswHandlerBuilder("products")
   })
   .build();
 
-const worker = setupWorker();
+const worker = setupWorker(
+  http.get("/api/status", () => {
+    return HttpResponse.json({ status: "ok", timestamp: Date.now() });
+  }),
+);
 await worker.start();
-setupMswRegistry(worker);
 
-app.use(MswDevtoolsPlugin);
+app.use(MswDevtoolsPlugin, { worker });
 app.mount("#app");

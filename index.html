@@ -22,6 +22,7 @@
       <div style="display: flex; gap: 1rem; margin-bottom: 1rem">
         <button id="fetch-users">Fetch Users (GET)</button>
         <button id="fetch-products">Fetch Products (POST)</button>
+        <button id="fetch-status">Fetch Status (GET)</button>
       </div>
       <div style="background: #f5f5f5; padding: 1rem; border-radius: 4px">
         <strong>Last Response:</strong>
@@ -37,14 +38,26 @@ No requests yet</pre
     <script type="module">
       const output = document.getElementById("response-output");
 
+      async function handleResponse(response) {
+        const contentType = response.headers.get("content-type");
+        let data;
+        if (contentType && contentType.includes("application/json")) {
+          data = await response.json();
+          return JSON.stringify(data, null, 2);
+        } else {
+          data = await response.text();
+          return `Status: ${response.status} ${response.statusText}\n\n${data || "(No body content)"}`;
+        }
+      }
+
       document
         .getElementById("fetch-users")
         ?.addEventListener("click", async () => {
           if (output) output.innerText = "Loading users...";
           try {
             const response = await fetch("/api/users");
-            const data = await response.json();
-            if (output) output.innerText = JSON.stringify(data, null, 2);
+            const result = await handleResponse(response);
+            if (output) output.innerText = result;
           } catch (err) {
             if (output) output.innerText = `Error: ${err.message}`;
           }
@@ -60,8 +73,21 @@ No requests yet</pre
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ name: "New Product", price: 99.99 }),
             });
-            const data = await response.json();
-            if (output) output.innerText = JSON.stringify(data, null, 2);
+            const result = await handleResponse(response);
+            if (output) output.innerText = result;
+          } catch (err) {
+            if (output) output.innerText = `Error: ${err.message}`;
+          }
+        });
+
+      document
+        .getElementById("fetch-status")
+        ?.addEventListener("click", async () => {
+          if (output) output.innerText = "Fetch status...";
+          try {
+            const response = await fetch("/api/status");
+            const result = await handleResponse(response);
+            if (output) output.innerText = result;
           } catch (err) {
             if (output) output.innerText = `Error: ${err.message}`;
           }

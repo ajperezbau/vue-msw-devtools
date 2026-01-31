@@ -8,7 +8,8 @@ A powerful browser-based UI for managing [Mock Service Worker (MSW)](https://msw
 - ✍️ **Manual Overrides**: Edit response status codes and bodies (JSON or Text) directly in the browser.
 - ⏱ **Network Simulation**: Set global or per-handler delays to simulate different network conditions.
 - 📋 **Activity Log**: View a history of all requests handled by MSW, including request/response bodies with JSON path filtering.
-- 💾 **Persistence**: All your settings (active scenarios, delays, overrides) are persisted in `localStorage`.
+- � **Zero-Config Discovery**: Automatically detects existing MSW handlers without changing your code.
+- �💾 **Persistence**: All your settings (active scenarios, delays, overrides) are persisted in `localStorage`.
 - 🔗 **URL Parameters Sync**: Deep-link to specific mock scenarios using URL query parameters.
 - ✨ **Custom Scenarios**: Save manual overrides as reusable custom scenarios.
 
@@ -22,58 +23,99 @@ pnpm add msw-devtools-plugin
 
 ## Setup
 
-### 1. Register the Vue Plugin
+### Step-by-Step Integration
 
-Add the devtools to your Vue application:
+You can integrate the devtools with a single line in your application entry point:
 
 ```typescript
 import { createApp } from "vue";
+import { setupWorker } from "msw/browser";
 import { MswDevtoolsPlugin } from "msw-devtools-plugin";
 import App from "./App.vue";
 
 const app = createApp(App);
 
-// Only install in development
+// 1. Setup MSW as usual
+const worker = setupWorker();
+await worker.start();
+
+// 2. Install the plugin and pass the worker instance
 if (process.env.NODE_ENV === "development") {
-  app.use(MswDevtoolsPlugin);
+  app.use(MswDevtoolsPlugin, {
+    worker,
+    // Optional: add handlers that shouldn't be controlled by the UI
+    baseHandlers: [],
+    // Optional: resolve dynamic URLs (e.g. removing IDs) to group them
+    urlResolver: (url) => url.replace(/\/\d+/g, "/:id"),
+  });
 }
 
 app.mount("#app");
 ```
 
-### 2. Initialize MSW Registry
+### Advanced Usage
 
-In your MSW entry point (usually `mocks/browser.ts`):
+If you prefer to keep MSW initialization separate, you can still use the previous method:
 
 ```typescript
-import { setupWorker } from "msw/browser";
-import { setupMswRegistry } from "msw-devtools-plugin";
+import { setupMswRegistry, MswDevtoolsPlugin } from "msw-devtools-plugin";
 
-export const worker = setupWorker();
-
-// Initialize the registry with your worker instance
+// ... setup worker
 setupMswRegistry(worker);
+app.use(MswDevtoolsPlugin);
 ```
+
+### Zero Config Discovery
+
+The plugin now automatically detects any existing handlers you have already registered in your MSW worker. They will appear in the DevTools UI under a default scenario named "original", allowing you to immediately:
+
+- Set delays for existing handlers.
+- See them in the Activity Log.
+- Apply manual overrides.
+
+No changes are needed to your existing MSW code beyond the initial setup!
 
 ## Defining Handlers
 
-Use the fluent `register` API to define handlers with multiple scenarios:
+You have two ways to define your mock handlers:
+
+### 1. Declarative (Recommended)
+
+Use `defineHandlers` to register multiple endpoints at once.
+
+```typescript
+import { defineHandlers } from "msw-devtools-plugin";
+import { HttpResponse } from "msw";
+
+defineHandlers({
+  users: {
+    url: "/api/users",
+    method: "get",
+    scenarios: {
+      success: () => HttpResponse.json([{ id: 1, name: "John" }]),
+      empty: () => HttpResponse.json([]),
+      error: () => new HttpResponse(null, { status: 500 }),
+    },
+  },
+});
+```
+
+### 2. Fluent API
+
+Use `register` (alias of `MswHandlerBuilder`) for a more programmatic approach.
 
 ```typescript
 import { register } from "msw-devtools-plugin";
 import { HttpResponse } from "msw";
 
-register("getProfile")
+register("profile")
   .url("/api/profile")
   .method("get")
   .scenario("default", () => {
     return HttpResponse.json({ id: 1, name: "John Doe" });
   })
-  .scenario("empty", () => {
-    return HttpResponse.json({});
-  })
-  .scenario("not-found", () => {
-    return new HttpResponse(null, { status: 404 });
+  .scenario("anonymous", () => {
+    return HttpResponse.json({ id: null, name: "Guest" });
   })
   .defaultScenario("default")
   .build();
