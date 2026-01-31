@@ -12,7 +12,7 @@ export interface MswDevtoolsOptions {
 }
 
 export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions[]> = {
-  install(app, options) {
+  install(_app, options) {
     if (typeof window === "undefined") return;
 
     const opts = Array.isArray(options) ? options[0] : options;
