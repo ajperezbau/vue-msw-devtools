@@ -55,6 +55,14 @@ test.describe("MSW DevTools Plugin", () => {
     await devToolsPage.expectHandler("products", "POST", "/api/products");
   });
 
+  test("should display handlers registered directly in MSW", async () => {
+    await devToolsPage.toggle();
+
+    // Handler registered via setupWorker in src/main.ts
+    await devToolsPage.expectHandler("GET /api/status", "GET", "/api/status");
+    await devToolsPage.expectScenario("GET /api/status", "original");
+  });
+
   test("should filter handlers by name, url, and method", async ({ page }) => {
     await devToolsPage.toggle();
 
