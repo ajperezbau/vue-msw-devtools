@@ -97,7 +97,7 @@ test.describe("MSW DevTools Plugin", () => {
   });
 
   // TODO: those tests are flaky/hard to stabilize, review in another moment
-  test.skip("should apply per-handler delay", async ({ page }) => {
+  test("should apply per-handler delay", async ({ page }) => {
     await devToolsPage.toggle();
     const delay = 1000;
     await devToolsPage.setHandlerDelay("users", delay);
@@ -116,12 +116,30 @@ test.describe("MSW DevTools Plugin", () => {
   });
 
   // TODO: those tests are flaky/hard to stabilize, review in another moment
-  test.skip("should apply global delay when handler delay is 0", async ({
+  test("should apply global delay when handler delay is 0", async ({
     page,
   }) => {
     await devToolsPage.toggle();
     const delay = 1000;
     await devToolsPage.setGlobalDelay(delay);
+
+    // Check delay using semaphore pattern from page object
+    await devToolsPage.startDelayedFetch("/api/users");
+
+    // Give it a tiny bit of time to ensure microtasks run.
+    await page.waitForTimeout(200);
+
+    // Should NOT be finished immediately
+    expect(await devToolsPage.isFetchFinished()).toBe(false);
+
+    // Should be finished after the delay
+    await devToolsPage.waitForFetchFinished(2000);
+  });
+
+  test("should apply global delay using the number input", async ({ page }) => {
+    await devToolsPage.toggle();
+    const delay = 800;
+    await devToolsPage.globalDelayNumberInput.fill(delay.toString());
 
     // Check delay using semaphore pattern from page object
     await devToolsPage.startDelayedFetch("/api/users");

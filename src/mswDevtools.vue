@@ -151,16 +151,31 @@
             </label>
           </div>
           <div class="global-delay-control">
-            <label for="global-delay">Global Delay: {{ globalDelay }}ms</label>
-            <input
-              id="global-delay"
-              type="range"
-              v-model.number="globalDelay"
-              min="0"
-              max="5000"
-              step="100"
-              class="delay-slider"
-            />
+            <label for="global-delay">Global Delay:</label>
+            <div class="global-delay-inputs">
+              <input
+                id="global-delay"
+                type="range"
+                v-model.number="globalDelay"
+                min="0"
+                max="5000"
+                step="100"
+                class="delay-slider"
+              />
+              <div class="global-delay-number-wrapper">
+                <input
+                  type="number"
+                  v-model.number="globalDelay"
+                  min="0"
+                  max="10000"
+                  step="50"
+                  placeholder="0"
+                  class="handler-delay-input"
+                  aria-label="Global delay in milliseconds"
+                />
+                <span class="ms-label">ms</span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1226,7 +1241,7 @@ const filteredActivityLog = computed(() => {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  width: 280px;
+  width: 400px;
   flex-shrink: 0;
   background-color: #f9fafb;
   padding: 0.5rem 0.75rem;
@@ -1239,7 +1254,21 @@ const filteredActivityLog = computed(() => {
   font-weight: 700;
   color: #4b5563;
   white-space: nowrap;
-  width: 130px;
+}
+
+.global-delay-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.global-delay-number-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  width: 110px;
+  flex-shrink: 0;
 }
 
 .delay-slider {

@@ -8,6 +8,7 @@ export class DevToolsPage {
   readonly registryTable: Locator;
   readonly searchInput: Locator;
   readonly globalDelayInput: Locator;
+  readonly globalDelayNumberInput: Locator;
   readonly fetchUsersButton: Locator;
   readonly fetchProductsButton: Locator;
 
@@ -23,6 +24,9 @@ export class DevToolsPage {
       "Filter by key, URL or method...",
     );
     this.globalDelayInput = this.dialog.getByLabel(/Global Delay:/);
+    this.globalDelayNumberInput = this.dialog.getByLabel(
+      "Global delay in milliseconds",
+    );
     this.fetchUsersButton = page.getByRole("button", { name: /Fetch Users/ });
     this.fetchProductsButton = page.getByRole("button", {
       name: /Fetch Products/,
