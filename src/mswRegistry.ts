@@ -80,6 +80,7 @@ interface HandlerMetadata {
   url: string;
   method: string;
   scenarios: string[];
+  isNative?: boolean;
 }
 
 export interface LogEntry {
@@ -134,13 +135,14 @@ export const setupMswRegistry = (
       if (!handler.info || !handler.info.path) return;
 
       const { path, method } = handler.info;
-      const key = `${method} ${path}`;
+      const key = path;
 
       // If it's not already registered by us, register it as a "Static" scenario
       if (!registeredHandlers.some((h) => h.key === key)) {
         register(key)
           .url(path)
           .method(method.toLowerCase())
+          .native(true)
           .scenario("original", handler.resolver || handler.run)
           .defaultScenario("original")
           .build();
@@ -221,6 +223,7 @@ export class MswHandlerBuilder<T extends string = "default"> {
   };
   private _defaultScenario: string = "default";
   private _priority: number = 0;
+  private _isNative: boolean = false;
 
   constructor(key: string) {
     this._key = key;
@@ -228,6 +231,11 @@ export class MswHandlerBuilder<T extends string = "default"> {
 
   url(value: string) {
     this._url = value;
+    return this;
+  }
+
+  native(value: boolean = true) {
+    this._isNative = value;
     return this;
   }
 
@@ -272,11 +280,13 @@ export class MswHandlerBuilder<T extends string = "default"> {
     const scenarios = this._scenarios;
     const defaultScenario = this._defaultScenario;
     const priority = this._priority;
+    const isNative = this._isNative;
 
     // Registrar metadatos
     scenarioRegistry[key] = {
       url,
       method: method.toUpperCase(),
+      isNative,
       scenarios: [
         ...Object.keys(scenarios),
         ...Object.keys(customScenarios[key] || {}),

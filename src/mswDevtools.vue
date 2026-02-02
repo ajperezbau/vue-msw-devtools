@@ -188,20 +188,27 @@
                 :class="{ 'is-modified': isModified(key) }"
               >
                 <td class="col-status">
-                  <span
-                    v-if="customOverrides[key]?.enabled"
-                    class="override-indicator"
-                    title="Manual override active"
-                  >
-                    M
-                  </span>
-                  <span
-                    v-else-if="isModified(key)"
-                    class="modified-indicator"
-                    title="Scenario modified"
-                  >
-                    •
-                  </span>
+                  <div class="status-indicators">
+                    <span
+                      v-if="scenarioRegistry[key]?.isNative"
+                      class="native-indicator"
+                      title="Native MSW handler (originally in setupWorker)"
+                    >
+                      N
+                    </span>
+                    <span
+                      v-if="customOverrides[key]?.enabled"
+                      class="override-indicator"
+                      title="Manual override active"
+                    >
+                      M
+                    </span>
+                    <span
+                      v-else-if="isModified(key)"
+                      class="modified-indicator"
+                      title="Scenario modified"
+                    ></span>
+                  </div>
                 </td>
                 <td class="col-method">
                   <span
@@ -215,7 +222,11 @@
                 <td class="col-info">
                   <div class="handler-info" v-if="scenarioRegistry[key]">
                     <span class="key-text">{{ key }}</span>
-                    <div class="url-wrapper" :title="scenarioRegistry[key].url">
+                    <div
+                      v-if="scenarioRegistry[key].url !== key"
+                      class="url-wrapper"
+                      :title="scenarioRegistry[key].url"
+                    >
                       {{ scenarioRegistry[key].url }}
                     </div>
                   </div>
@@ -454,6 +465,12 @@
                 <div class="log-scenario-info">
                   <div class="log-key-wrapper">
                     <span class="log-key">{{ entry.key }}</span>
+                    <span
+                      v-if="scenarioRegistry[entry.key]?.isNative"
+                      class="native-badge mini"
+                      title="Native MSW handler"
+                      >Native</span
+                    >
                     <button
                       type="button"
                       @click.stop="viewHandlerForKey(entry.key)"
@@ -929,9 +946,12 @@ const clearConfigs = () => {
 };
 
 const isModified = (key: string) => {
+  const handler = scenarioRegistry[key];
+  const defaultScenario = handler?.isNative ? "original" : "default";
+
   const scenarioModified =
-    scenarioState[key] && scenarioState[key] !== "default";
-  const delayModified = handlerDelays[key] && handlerDelays[key] > 0;
+    scenarioState[key] && scenarioState[key] !== defaultScenario;
+  const delayModified = (handlerDelays[key] || 0) > 0;
   const hasOverride = customOverrides[key]?.enabled;
   return scenarioModified || delayModified || hasOverride;
 };
@@ -1773,9 +1793,32 @@ const filteredActivityLog = computed(() => {
 }
 
 .col-status {
-  width: 40px;
+  width: 50px;
   text-align: center;
 }
+
+.status-indicators {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.native-indicator {
+  font-size: 0.65rem;
+  font-weight: 900;
+  color: #6b7280;
+  background-color: #f3f4f6;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid #d8dae0;
+  flex-shrink: 0;
+}
+
 .col-method {
   width: 100px;
 }
@@ -1814,9 +1857,12 @@ const filteredActivityLog = computed(() => {
   white-space: nowrap;
 }
 .modified-indicator {
-  color: #2563eb;
-  font-size: 2rem;
-  line-height: 0;
+  width: 10px;
+  height: 10px;
+  background-color: #2563eb;
+  border-radius: 9999px;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .method-badge {
@@ -1872,6 +1918,30 @@ const filteredActivityLog = computed(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.title-with-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.native-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  flex-shrink: 0;
+}
+
+.native-badge.mini {
+  font-size: 0.55rem;
+  padding: 0.05rem 0.2rem;
 }
 
 .scenario-select {
