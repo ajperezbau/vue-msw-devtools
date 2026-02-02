@@ -1,11 +1,22 @@
 <template>
-  <div class="scenario-selector-overlay">
+  <div
+    class="scenario-selector-overlay"
+    :style="{
+      left: position.x + 'px',
+      top: position.y + 'px',
+      bottom: 'auto',
+      right: 'auto',
+    }"
+  >
     <button
       type="button"
-      @click="isOpen = !isOpen"
+      @mousedown="startDrag"
+      @touchstart="startDrag"
+      @click="toggleDevtools"
       class="toggle-button"
       title="MSW Handler Registry (Ctrl + Shift + M)"
       aria-label="Toggle MSW DevTools"
+      :class="{ 'is-dragging': isDragging }"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -692,6 +703,104 @@ import {
 const isOpen = ref(false);
 const activeTab = ref<"registry" | "log">("registry");
 const searchQuery = ref(localStorage.getItem("msw-scenarios-filter") || "");
+
+const position = ref({ x: 0, y: 0 });
+const isDragging = ref(false);
+const dragStart = ref({ x: 0, y: 0 });
+const hasMoved = ref(false);
+
+const startDrag = (e: MouseEvent | TouchEvent) => {
+  isDragging.value = true;
+  hasMoved.value = false;
+
+  let clientX: number;
+  let clientY: number;
+
+  if ("touches" in e) {
+    const touch = e.touches[0];
+    if (!touch) return;
+    clientX = touch.clientX;
+    clientY = touch.clientY;
+  } else {
+    clientX = (e as MouseEvent).clientX;
+    clientY = (e as MouseEvent).clientY;
+  }
+
+  dragStart.value = {
+    x: clientX - position.value.x,
+    y: clientY - position.value.y,
+  };
+
+  window.addEventListener("mousemove", onDrag);
+  window.addEventListener("mouseup", endDrag);
+  window.addEventListener("touchmove", onDrag, { passive: false });
+  window.addEventListener("touchend", endDrag);
+};
+
+const onDrag = (e: MouseEvent | TouchEvent) => {
+  if (!isDragging.value) return;
+
+  let clientX: number;
+  let clientY: number;
+
+  if ("touches" in e) {
+    const touch = e.touches[0];
+    if (!touch) return;
+    clientX = touch.clientX;
+    clientY = touch.clientY;
+  } else {
+    clientX = (e as MouseEvent).clientX;
+    clientY = (e as MouseEvent).clientY;
+  }
+
+  const newX = clientX - dragStart.value.x;
+  const newY = clientY - dragStart.value.y;
+
+  // Small threshold to avoid accidental drags when clicking
+  if (
+    !hasMoved.value &&
+    Math.abs(newX - position.value.x) < 5 &&
+    Math.abs(newY - position.value.y) < 5
+  ) {
+    return;
+  }
+
+  hasMoved.value = true;
+
+  // Constrain position to viewport
+  const padding = 10;
+  const buttonSize = 60; // Approximate size of the button
+  position.value = {
+    x: Math.max(
+      padding,
+      Math.min(window.innerWidth - buttonSize - padding, newX),
+    ),
+    y: Math.max(
+      padding,
+      Math.min(window.innerHeight - buttonSize - padding, newY),
+    ),
+  };
+};
+
+const endDrag = () => {
+  if (isDragging.value) {
+    isDragging.value = false;
+    localStorage.setItem("msw-devtools-x", String(position.value.x));
+    localStorage.setItem("msw-devtools-y", String(position.value.y));
+  }
+
+  window.removeEventListener("mousemove", onDrag);
+  window.removeEventListener("mouseup", endDrag);
+  window.removeEventListener("touchmove", onDrag);
+  window.removeEventListener("touchend", endDrag);
+};
+
+const toggleDevtools = () => {
+  if (!hasMoved.value) {
+    isOpen.value = !isOpen.value;
+  }
+};
+
 const showOnlyModified = ref(
   localStorage.getItem("msw-show-only-modified") === "true",
 );
@@ -915,22 +1024,51 @@ const handleKeyDown = (e: KeyboardEvent) => {
   }
 };
 
+const reloadPage = () => {
+  isOpen.value = false;
+  window.location.reload();
+};
+
+const handleResize = () => {
+  const padding = 10;
+  const buttonSize = 60;
+  position.value = {
+    x: Math.max(
+      padding,
+      Math.min(window.innerWidth - buttonSize - padding, position.value.x),
+    ),
+    y: Math.max(
+      padding,
+      Math.min(window.innerHeight - buttonSize - padding, position.value.y),
+    ),
+  };
+};
+
 onMounted(() => {
+  const savedX = localStorage.getItem("msw-devtools-x");
+  const savedY = localStorage.getItem("msw-devtools-y");
+
+  if (savedX !== null && savedY !== null) {
+    position.value = { x: Number(savedX), y: Number(savedY) };
+  } else {
+    position.value = {
+      x: window.innerWidth - 80,
+      y: window.innerHeight - 80,
+    };
+  }
+
   window.addEventListener("keydown", handleKeyDown);
+  window.addEventListener("resize", handleResize);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
+  window.removeEventListener("resize", handleResize);
 });
 
 const focusSearch = async () => {
   await nextTick();
   searchInput.value?.focus();
-};
-
-const reloadPage = () => {
-  isOpen.value = false;
-  window.location.reload();
 };
 
 const clearConfigs = () => {
@@ -1048,13 +1186,12 @@ const filteredActivityLog = computed(() => {
 
 .scenario-selector-overlay {
   position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
   z-index: 10000;
   font-family:
     system-ui,
     -apple-system,
     sans-serif;
+  user-select: none;
 }
 
 .toggle-button {
@@ -1064,11 +1201,20 @@ const filteredActivityLog = computed(() => {
   border-radius: 9999px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
   border: none;
-  cursor: pointer;
-  transition: all 0.2s;
+  cursor: move;
+  transition:
+    transform 0.2s,
+    background-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
+  touch-action: none;
+}
+
+.toggle-button.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.1);
+  opacity: 0.9;
 }
 
 .toggle-button:hover {

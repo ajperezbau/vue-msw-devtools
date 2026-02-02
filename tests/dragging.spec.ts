@@ -1,0 +1,68 @@
+import { test, expect } from "@playwright/test";
+import { DevToolsPage } from "./page-objects/DevToolsPage";
+
+test.describe("MSW DevTools Dragging", () => {
+  let devToolsPage: DevToolsPage;
+
+  test.beforeEach(async ({ page }) => {
+    devToolsPage = new DevToolsPage(page);
+    await devToolsPage.goto();
+  });
+
+  test("should be able to drag the toggle button", async ({ page }) => {
+    const button = devToolsPage.toggleButton;
+
+    const initialBox = await button.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    if (initialBox) {
+      // Drag the button
+      const targetX = initialBox.x - 100;
+      const targetY = initialBox.y - 100;
+
+      await button.hover();
+      await page.mouse.down();
+      await page.mouse.move(targetX, targetY, { steps: 10 });
+      await page.mouse.up();
+
+      const finalBox = await button.boundingBox();
+      expect(finalBox).not.toBeNull();
+
+      if (finalBox) {
+        // Allow for some small deviation if constrained or due to padding
+        expect(finalBox.x).toBeLessThan(initialBox.x);
+        expect(finalBox.y).toBeLessThan(initialBox.y);
+      }
+    }
+  });
+
+  test("should persist position after reload", async ({ page }) => {
+    const button = devToolsPage.toggleButton;
+
+    const initialBox = await button.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    if (initialBox) {
+      const targetX = 100;
+      const targetY = 100;
+
+      await button.hover();
+      await page.mouse.down();
+      await page.mouse.move(targetX, targetY, { steps: 10 });
+      await page.mouse.up();
+
+      const boxBeforeReload = await button.boundingBox();
+
+      await page.reload();
+      await devToolsPage.expectVisible();
+
+      const boxAfterReload = await button.boundingBox();
+
+      expect(boxAfterReload).not.toBeNull();
+      if (boxAfterReload && boxBeforeReload) {
+        expect(Math.abs(boxAfterReload.x - boxBeforeReload.x)).toBeLessThan(2);
+        expect(Math.abs(boxAfterReload.y - boxBeforeReload.y)).toBeLessThan(2);
+      }
+    }
+  });
+});
