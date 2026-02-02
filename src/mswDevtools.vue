@@ -19,23 +19,24 @@
       :class="{ 'is-dragging': isDragging }"
     >
       <svg
-        xmlns="http://www.w3.org/2000/svg"
-        class="h-6 w-6"
+        viewBox="0 0 100 100"
         fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
+        xmlns="http://www.w3.org/2000/svg"
+        class="msw-logo-svg"
       >
         <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+          d="M86.1306 20.3541C86.1306 13.123 79.9914 7.26416 72.4187 7.26416L24.5828 7.26416C16.8927 7.3751 10.999 13.9103 11 21.6004L11 78.3996C11.0019 86.4168 17.5053 92.91 25.5226 92.9L73.1818 92.9C80.3204 92.9 86.1306 87.0898 86.1306 79.9512V20.3541Z"
+          fill="black"
         />
         <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          fill-rule="evenodd"
+          clip-rule="evenodd"
+          d="M33.8647 31.2583C30.6811 31.2583 28.1004 33.839 28.1004 37.0227V64.9184C28.1004 68.102 30.6811 70.6828 33.8647 70.6828H61.7604C64.9441 70.6828 67.5248 68.102 67.5248 64.9184V37.0227C67.5248 33.839 64.9441 31.2583 61.7604 31.2583H33.8647ZM20.4573 37.1066C20.4573 29.7042 26.4623 23.7001 33.8647 23.7001H61.7604C69.1628 23.7001 75.1678 29.7042 75.1678 37.1066V64.9184C75.1678 72.3217 69.1628 78.3249 61.7604 78.3249H33.8647C26.4623 78.3249 20.4573 72.3217 20.4573 64.9184V37.1066Z"
+          fill="#FF6A33"
+        />
+        <path
+          d="M20.8427 33.5113C18.2307 28.8576 21.5835 23.001 26.9366 23.001H74.4566C81.6521 23.001 87.4851 28.834 87.4851 36.0295V55.6025C87.4851 60.9575 81.6256 64.3079 76.972 61.6931L31.3255 36.0449L20.8427 33.5113Z"
+          fill="#FF6A33"
         />
       </svg>
     </button>
@@ -43,6 +44,7 @@
     <div v-if="isOpen" class="modal-backdrop" @click.self="isOpen = false">
       <div
         class="modal-content"
+        :class="'theme-' + theme"
         role="dialog"
         aria-modal="true"
         aria-labelledby="msw-devtools-title"
@@ -70,6 +72,47 @@
             </button>
           </div>
           <div class="panel-actions">
+            <button
+              type="button"
+              @click="toggleTheme"
+              class="theme-toggle-button"
+              :title="
+                theme === 'light'
+                  ? 'Switch to Dark Mode'
+                  : 'Switch to Light Mode'
+              "
+            >
+              <svg
+                v-if="theme === 'light'"
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                />
+              </svg>
+              <svg
+                v-else
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 3v1m0 16v1m9-9h-1M4 9H3m15.364 6.364l-.707.707M6.343 6.343l-.707.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                />
+              </svg>
+            </button>
             <button
               v-if="activeTab === 'log'"
               type="button"
@@ -703,6 +746,14 @@ import {
 const isOpen = ref(false);
 const activeTab = ref<"registry" | "log">("registry");
 const searchQuery = ref(localStorage.getItem("msw-scenarios-filter") || "");
+const theme = ref<"light" | "dark">(
+  (localStorage.getItem("msw-devtools-theme") as "light" | "dark") || "dark",
+);
+
+const toggleTheme = () => {
+  theme.value = theme.value === "light" ? "dark" : "light";
+  localStorage.setItem("msw-devtools-theme", theme.value);
+};
 
 const position = ref({ x: 0, y: 0 });
 const isDragging = ref(false);
@@ -1159,6 +1210,40 @@ const filteredActivityLog = computed(() => {
 </script>
 
 <style scoped>
+.modal-content.theme-light {
+  --bg-main: #ffffff;
+  --bg-secondary: #fafafa;
+  --bg-tertiary: #f4f4f5;
+  --text-main: #09090b;
+  --text-secondary: #52525b;
+  --text-tertiary: #71717a;
+  --border-color: #e4e4e7;
+  --accent-color: #ff6a33;
+  --accent-hover: #e65a2b;
+  --accent-soft: rgba(255, 106, 51, 0.1);
+  --input-bg: #ffffff;
+  --table-hover: #fafafa;
+  --table-header-bg: #fafafa;
+  --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content.theme-dark {
+  --bg-main: #18181b;
+  --bg-secondary: #27272a;
+  --bg-tertiary: #3f3f46;
+  --text-main: #fafafa;
+  --text-secondary: #d4d4d8;
+  --text-tertiary: #a1a1aa;
+  --border-color: #3f3f46;
+  --accent-color: #ff6a33;
+  --accent-hover: #ff8559;
+  --accent-soft: rgba(255, 106, 51, 0.15);
+  --input-bg: #121212;
+  --table-hover: #27272a;
+  --table-header-bg: #18181b;
+  --modal-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
 .h-6 {
   height: 1.5rem;
 }
@@ -1195,30 +1280,40 @@ const filteredActivityLog = computed(() => {
 }
 
 .toggle-button {
-  background-color: #2563eb;
+  background-color: #1a1a1a;
   color: white;
-  padding: 1rem;
-  border-radius: 9999px;
+  padding: 10px;
+  border-radius: 12px;
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
-  border: none;
+  border: 4px solid #333;
   cursor: move;
   transition:
     transform 0.2s,
-    background-color 0.2s;
+    background-color 0.2s,
+    border-color 0.2s;
   display: flex;
   align-items: center;
   justify-content: center;
   touch-action: none;
+  width: 60px;
+  height: 60px;
+}
+
+.msw-logo-svg {
+  width: 100%;
+  height: 100%;
 }
 
 .toggle-button.is-dragging {
   cursor: grabbing;
   transform: scale(1.1);
   opacity: 0.9;
+  border-color: #ff6a33;
 }
 
 .toggle-button:hover {
-  background-color: #1d4ed8;
+  background-color: #000;
+  border-color: #ff6a33;
   transform: scale(1.05);
 }
 
@@ -1235,30 +1330,31 @@ const filteredActivityLog = computed(() => {
 }
 
 .modal-content {
-  background-color: white;
+  background-color: var(--bg-main);
+  color: var(--text-main);
   border-radius: 1rem;
   width: 100%;
   max-width: 1600px;
   height: 95vh;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--modal-shadow);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .panel-header {
   padding: 1rem 1.5rem;
   display: flex;
   align-items: center;
-  background-color: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .panel-title {
   font-size: 1.25rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--text-main);
   margin: 0;
 }
 
@@ -1266,6 +1362,9 @@ const filteredActivityLog = computed(() => {
   display: flex;
   gap: 0.5rem;
   margin: 0 1.5rem;
+  background-color: var(--bg-tertiary);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
 }
 
 .tab-button {
@@ -1275,19 +1374,20 @@ const filteredActivityLog = computed(() => {
   border-radius: 0.5rem;
   border: none;
   background: transparent;
-  color: #6b7280;
+  color: var(--text-tertiary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tab-button:hover {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--bg-secondary);
+  color: var(--text-main);
 }
 
 .tab-button.active {
-  background-color: #dbeafe;
-  color: #1e40af;
+  background-color: var(--bg-main);
+  color: var(--accent-color);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .panel-actions {
@@ -1297,25 +1397,35 @@ const filteredActivityLog = computed(() => {
   align-items: center;
 }
 
-.clear-button {
-  background-color: white;
-  color: #4b5563;
+.clear-button,
+.theme-toggle-button {
+  background-color: var(--bg-main);
+  color: var(--text-secondary);
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   cursor: pointer;
   transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.clear-button:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
+.theme-toggle-button {
+  padding: 0.5rem;
+}
+
+.clear-button:hover,
+.theme-toggle-button:hover {
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-tertiary);
+  color: var(--text-main);
 }
 
 .reload-button {
-  background-color: #2563eb;
+  background-color: var(--accent-color);
   color: white;
   padding: 0.5rem 1.25rem;
   border-radius: 0.5rem;
@@ -1327,13 +1437,13 @@ const filteredActivityLog = computed(() => {
 }
 
 .reload-button:hover {
-  background-color: #1d4ed8;
+  background-color: var(--accent-hover);
 }
 
 .close-button {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 0.5rem;
   display: flex;
@@ -1343,14 +1453,14 @@ const filteredActivityLog = computed(() => {
 }
 
 .close-button:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
 }
 
 .search-container {
   padding: 1rem 1.5rem;
-  background-color: white;
-  border-bottom: 1px solid #f3f4f6;
+  background-color: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   gap: 1.5rem;
   align-items: center;
@@ -1368,7 +1478,7 @@ const filteredActivityLog = computed(() => {
   right: 0.75rem;
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   padding: 0.25rem;
   border-radius: 9999px;
@@ -1379,8 +1489,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .clear-search-button:hover {
-  background-color: #e5e7eb;
-  color: #4b5563;
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
 }
 
 .global-delay-control {
@@ -1389,16 +1499,16 @@ const filteredActivityLog = computed(() => {
   gap: 0.75rem;
   width: 400px;
   flex-shrink: 0;
-  background-color: #f9fafb;
+  background-color: var(--bg-secondary);
   padding: 0.5rem 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .global-delay-control label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -1420,24 +1530,24 @@ const filteredActivityLog = computed(() => {
 .delay-slider {
   flex: 1;
   cursor: pointer;
+  accent-color: var(--accent-color);
 }
 
 .search-input {
   width: 100%;
   border-radius: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   padding: 0.75rem 2.5rem 0.75rem 1rem;
   font-size: 1rem;
-  color: #111827;
-  background-color: #f9fafb;
+  color: var(--text-main);
+  background-color: var(--input-bg);
   transition: all 0.2s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #2563eb;
-  background-color: white;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .modified-filter {
@@ -1452,7 +1562,7 @@ const filteredActivityLog = computed(() => {
   gap: 0.5rem;
   font-size: 0.875rem;
   font-weight: 600;
-  color: #4b5563;
+  color: var(--text-secondary);
   cursor: pointer;
   user-select: none;
 }
@@ -1461,26 +1571,28 @@ const filteredActivityLog = computed(() => {
   width: 1rem;
   height: 1rem;
   cursor: pointer;
+  accent-color: var(--accent-color);
 }
 
 .registry-container {
   flex: 1;
   overflow-y: auto;
   padding: 0;
+  background-color: var(--bg-main);
 }
 
 .log-container {
   flex: 1;
   overflow-y: auto;
-  background-color: #f9fafb;
+  background-color: var(--bg-secondary);
   display: flex;
   flex-direction: column;
 }
 
 .log-header {
   padding: 0.75rem 1.5rem;
-  background-color: white;
-  border-bottom: 1px solid #e5e7eb;
+  background-color: var(--bg-main);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1498,19 +1610,19 @@ const filteredActivityLog = computed(() => {
 .method-toggle-btn {
   padding: 0.375rem 0.75rem;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   font-size: 0.75rem;
   font-weight: 700;
-  color: #6b7280;
-  background-color: white;
+  color: var(--text-tertiary);
+  background-color: var(--bg-main);
   cursor: pointer;
   transition: all 0.2s;
   text-transform: uppercase;
 }
 
 .method-toggle-btn:hover {
-  background-color: #f3f4f6;
-  border-color: #9ca3af;
+  background-color: var(--bg-tertiary);
+  border-color: var(--text-tertiary);
 }
 
 .method-toggle-btn.active {
@@ -1518,34 +1630,55 @@ const filteredActivityLog = computed(() => {
 }
 
 .method-toggle-btn.active.all {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
 }
 .method-toggle-btn.active.get {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+.method-toggle-btn.active.post {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+.method-toggle-btn.active.put {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+.method-toggle-btn.active.patch {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+.method-toggle-btn.active.delete {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.theme-light .method-toggle-btn.active.get {
   background-color: #dcfce7;
   color: #166534;
 }
-.method-toggle-btn.active.post {
+.theme-light .method-toggle-btn.active.post {
   background-color: #fef9c3;
   color: #854d0e;
 }
-.method-toggle-btn.active.put {
+.theme-light .method-toggle-btn.active.put {
   background-color: #dbeafe;
   color: #1e40af;
 }
-.method-toggle-btn.active.patch {
+.theme-light .method-toggle-btn.active.patch {
   background-color: #f3e8ff;
   color: #6b21a8;
 }
-.method-toggle-btn.active.delete {
+.theme-light .method-toggle-btn.active.delete {
   background-color: #fee2e2;
   color: #991b1b;
 }
 
 .log-filter-banner {
   padding: 0.75rem 1.5rem;
-  background-color: #eff6ff;
-  border-bottom: 1px solid #dbeafe;
+  background-color: var(--accent-soft);
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1553,15 +1686,16 @@ const filteredActivityLog = computed(() => {
 
 .filter-info {
   font-size: 0.875rem;
-  color: #1e40af;
+  color: var(--accent-color);
+  font-weight: 600;
 }
 
 .clear-filter-button {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #2563eb;
-  background: white;
-  border: 1px solid #d1d5db;
+  color: var(--accent-color);
+  background: var(--bg-main);
+  border: 1px solid var(--border-color);
   padding: 0.25rem 0.75rem;
   border-radius: 9999px;
   cursor: pointer;
@@ -1569,8 +1703,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .clear-filter-button:hover {
-  border-color: #2563eb;
-  background-color: #f8faff;
+  border-color: var(--accent-color);
+  background-color: var(--bg-tertiary);
 }
 
 .log-list {
@@ -1579,8 +1713,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .log-entry {
-  border-bottom: 1px solid #e5e7eb;
-  background-color: white;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-main);
 }
 
 .log-entry.is-error {
@@ -1598,13 +1732,13 @@ const filteredActivityLog = computed(() => {
 }
 
 .log-entry-header:hover {
-  background-color: #f3f4f6;
+  background-color: var(--table-hover);
 }
 
 .log-time {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
   width: 80px;
 }
 
@@ -1612,7 +1746,7 @@ const filteredActivityLog = computed(() => {
   flex: 1;
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.8125rem;
-  color: #374151;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1621,8 +1755,8 @@ const filteredActivityLog = computed(() => {
 .log-request-preview {
   font-family: inherit;
   font-size: 0.75rem;
-  color: #6b7280;
-  background-color: #f3f4f6;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
   max-width: 250px;
@@ -1630,7 +1764,7 @@ const filteredActivityLog = computed(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0 1rem;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
 }
 
 .log-scenario-info {
@@ -1652,33 +1786,33 @@ const filteredActivityLog = computed(() => {
   padding: 0.125rem;
   border-radius: 0.25rem;
   background-color: transparent;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .log-entry-header:hover .mini-icon-button {
-  color: #6b7280;
-  border-color: #d1d5db;
-  background-color: #f3f4f6;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  background-color: var(--bg-tertiary);
 }
 
 .mini-icon-button:hover {
-  background-color: #eff6ff !important;
-  color: #2563eb !important;
-  border-color: #2563eb !important;
+  background-color: var(--accent-soft) !important;
+  color: var(--accent-color) !important;
+  border-color: var(--accent-color) !important;
 }
 
 .log-key {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-main);
 }
 
 .log-scenario {
   font-size: 0.6875rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
 }
 
 .status-badge {
@@ -1698,7 +1832,7 @@ const filteredActivityLog = computed(() => {
 }
 
 .expand-icon {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   transition: transform 0.2s;
 }
 
@@ -1708,8 +1842,8 @@ const filteredActivityLog = computed(() => {
 
 .log-details {
   padding: 1rem;
-  background-color: #f9fafb;
-  border-top: 1px solid #e5e7eb;
+  background-color: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
 }
 
 .details-section {
@@ -1736,7 +1870,7 @@ const filteredActivityLog = computed(() => {
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--text-tertiary);
   margin-bottom: 0;
 }
 
@@ -1744,7 +1878,7 @@ const filteredActivityLog = computed(() => {
   font-size: 0.625rem;
   font-weight: 600;
   padding: 0.25rem 0.5rem;
-  background-color: #2563eb;
+  background-color: var(--accent-color);
   color: white;
   border: none;
   border-radius: 0.25rem;
@@ -1753,7 +1887,7 @@ const filteredActivityLog = computed(() => {
 }
 
 .mini-action-button:hover {
-  background-color: #1d4ed8;
+  background-color: var(--accent-hover);
 }
 
 .override-editor-overlay {
@@ -1768,19 +1902,20 @@ const filteredActivityLog = computed(() => {
 }
 
 .override-editor-content {
-  background-color: white;
+  background-color: var(--bg-main);
   border-radius: 0.75rem;
   width: 100%;
   max-width: 600px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--modal-shadow);
   max-height: 80vh;
+  border: 1px solid var(--border-color);
 }
 
 .editor-header {
   padding: 1.25rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1790,6 +1925,7 @@ const filteredActivityLog = computed(() => {
   margin: 0;
   font-size: 1rem;
   font-weight: 700;
+  color: var(--text-main);
 }
 
 .editor-body {
@@ -1809,7 +1945,7 @@ const filteredActivityLog = computed(() => {
 .input-group label {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 .label-with-action {
@@ -1820,9 +1956,9 @@ const filteredActivityLog = computed(() => {
 
 .format-button {
   font-size: 0.6875rem;
-  background-color: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
   border-radius: 4px;
   padding: 2px 8px;
   cursor: pointer;
@@ -1830,29 +1966,34 @@ const filteredActivityLog = computed(() => {
 }
 
 .format-button:hover {
-  background-color: #e5e7eb;
+  background-color: var(--bg-secondary);
+  border-color: var(--text-tertiary);
 }
 
 .status-input {
   width: 100px;
   padding: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 0.375rem;
+  background-color: var(--input-bg);
+  color: var(--text-main);
 }
 
 .body-textarea {
   height: 250px;
   padding: 0.75rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   border-radius: 0.375rem;
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.75rem;
   resize: vertical;
+  background-color: var(--input-bg);
+  color: var(--text-main);
 }
 
 .editor-footer {
   padding: 1.25rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
   display: flex;
   gap: 0.75rem;
 }
@@ -1862,7 +2003,7 @@ const filteredActivityLog = computed(() => {
 }
 
 .primary-button {
-  background-color: #2563eb;
+  background-color: var(--accent-color);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
@@ -1871,19 +2012,27 @@ const filteredActivityLog = computed(() => {
   cursor: pointer;
 }
 
+.primary-button:hover {
+  background-color: var(--accent-hover);
+}
+
 .secondary-button {
-  background-color: white;
-  color: #374151;
+  background-color: var(--bg-main);
+  color: var(--text-main);
   padding: 0.5rem 1rem;
   border-radius: 0.375rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   font-weight: 600;
   cursor: pointer;
 }
 
+.secondary-button:hover {
+  background-color: var(--bg-tertiary);
+}
+
 .icon-button.has-override {
-  color: #d97706;
-  background-color: #fffbeb;
+  color: #fbbf24;
+  background-color: rgba(251, 191, 36, 0.1);
 }
 
 .override-indicator {
@@ -1892,8 +2041,8 @@ const filteredActivityLog = computed(() => {
   justify-content: center;
   width: 18px;
   height: 18px;
-  background-color: #d97706;
-  color: white;
+  background-color: #fbbf24;
+  color: #1a1a1a;
   font-size: 10px;
   font-weight: 800;
   border-radius: 4px;
@@ -1907,18 +2056,23 @@ const filteredActivityLog = computed(() => {
 .details-content {
   margin: 0;
   padding: 0.75rem;
-  background-color: #1f2937;
-  color: #f9fafb;
+  background-color: var(--bg-tertiary);
+  color: var(--text-main);
   border-radius: 0.5rem;
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.75rem;
   overflow-x: auto;
   white-space: pre-wrap;
-  max-height: 300px;
+  max-height: 400px;
+  border: 1px solid var(--border-color);
+}
+
+.theme-dark .details-content {
+  background-color: #121212;
 }
 
 .icon-button {
-  color: #6b7280;
+  color: var(--text-tertiary);
   padding: 0.4rem;
   border-radius: 0.5rem;
   border: none;
@@ -1928,8 +2082,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .icon-button:hover {
-  background-color: #f3f4f6;
-  color: #2563eb;
+  background-color: var(--bg-tertiary);
+  color: var(--accent-color);
 }
 
 .registry-table {
@@ -1942,29 +2096,29 @@ const filteredActivityLog = computed(() => {
 .registry-table th {
   position: sticky;
   top: 0;
-  background-color: #f9fafb;
+  background-color: var(--table-header-bg);
   padding: 0.75rem 1rem;
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #6b7280;
-  border-bottom: 1px solid #e5e7eb;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-color);
   z-index: 10;
 }
 
 .registry-table td {
   padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
 
 .registry-table tr:hover {
-  background-color: #f9fafb;
+  background-color: var(--table-hover);
 }
 
 .registry-table tr.is-modified {
-  background-color: #eff6ff;
+  background-color: var(--accent-soft);
 }
 
 .col-status {
@@ -1982,15 +2136,15 @@ const filteredActivityLog = computed(() => {
 .native-indicator {
   font-size: 0.65rem;
   font-weight: 900;
-  color: #6b7280;
-  background-color: #f3f4f6;
+  color: var(--text-tertiary);
+  background-color: var(--bg-tertiary);
   width: 18px;
   height: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  border: 1px solid #d8dae0;
+  border: 1px solid var(--border-color);
   flex-shrink: 0;
 }
 
@@ -2021,20 +2175,22 @@ const filteredActivityLog = computed(() => {
   width: 100%;
   padding: 0.4rem 0.5rem;
   border-radius: 0.375rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
+  background-color: var(--input-bg);
+  color: var(--text-main);
 }
 
 .ms-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
   white-space: nowrap;
 }
 .modified-indicator {
   width: 10px;
   height: 10px;
-  background-color: #2563eb;
+  background-color: var(--accent-color);
   border-radius: 9999px;
   display: inline-block;
   flex-shrink: 0;
@@ -2049,25 +2205,46 @@ const filteredActivityLog = computed(() => {
   display: inline-block;
 }
 
-.method-badge.get {
+.theme-light .method-badge.get {
   background-color: #dcfce7;
   color: #166534;
 }
-.method-badge.post {
+.theme-light .method-badge.post {
   background-color: #fef9c3;
   color: #854d0e;
 }
-.method-badge.put {
+.theme-light .method-badge.put {
   background-color: #dbeafe;
   color: #1e40af;
 }
-.method-badge.patch {
+.theme-light .method-badge.patch {
   background-color: #f3e8ff;
   color: #6b21a8;
 }
-.method-badge.delete {
+.theme-light .method-badge.delete {
   background-color: #fee2e2;
   color: #991b1b;
+}
+
+.theme-dark .method-badge.get {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+.theme-dark .method-badge.post {
+  background-color: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+.theme-dark .method-badge.put {
+  background-color: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+}
+.theme-dark .method-badge.patch {
+  background-color: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+.theme-dark .method-badge.delete {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
 }
 
 .handler-info {
@@ -2080,7 +2257,7 @@ const filteredActivityLog = computed(() => {
 .url-wrapper {
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--text-tertiary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2089,7 +2266,7 @@ const filteredActivityLog = computed(() => {
 .key-text {
   font-size: 0.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2106,9 +2283,9 @@ const filteredActivityLog = computed(() => {
   font-weight: 700;
   padding: 0.1rem 0.35rem;
   border-radius: 0.25rem;
-  background-color: #f3f4f6;
-  color: #6b7280;
-  border: 1px solid #e5e7eb;
+  background-color: var(--bg-tertiary);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-color);
   text-transform: uppercase;
   letter-spacing: 0.025em;
   flex-shrink: 0;
@@ -2122,48 +2299,48 @@ const filteredActivityLog = computed(() => {
 .scenario-select {
   width: 100%;
   border-radius: 0.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--border-color);
   padding: 0.5rem;
   font-size: 0.875rem;
-  color: #111827;
-  background-color: white;
+  color: var(--text-main);
+  background-color: var(--input-bg);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .scenario-select.is-modified {
-  border-color: #2563eb;
-  background-color: #f0f7ff;
+  border-color: var(--accent-color);
+  background-color: var(--accent-soft);
   font-weight: 600;
 }
 
 .empty-state {
   text-align: center;
   padding: 4rem 1rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
 .json-search-bar {
   margin-bottom: 1rem;
   padding-bottom: 1rem;
-  border-bottom: 1px dashed #e5e7eb;
+  border-bottom: 1px dashed var(--border-color);
 }
 
 .json-search-container {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background-color: white;
-  border: 1px solid #d1d5db;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
   border-radius: 0.5rem;
   padding: 0.25rem 0.75rem;
   transition: all 0.2s;
 }
 
 .json-search-container:focus-within {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .json-search-input {
@@ -2172,18 +2349,19 @@ const filteredActivityLog = computed(() => {
   outline: none;
   font-size: 0.75rem;
   padding: 0.25rem 0;
-  color: #111827;
+  color: var(--text-main);
+  background-color: transparent;
 }
 
 .search-icon {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .json-help-icon {
   background: none;
   border: none;
   padding: 0.25rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: help;
   display: flex;
   align-items: center;
@@ -2192,8 +2370,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .json-help-icon:hover {
-  color: #6b7280;
-  background-color: #f3f4f6;
+  color: var(--text-secondary);
+  background-color: var(--bg-tertiary);
 }
 
 .json-help-wrapper {
@@ -2218,6 +2396,7 @@ const filteredActivityLog = computed(() => {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.2s;
+  border: 1px solid #374151;
 }
 
 .custom-tooltip::after {
@@ -2238,7 +2417,7 @@ const filteredActivityLog = computed(() => {
 .clear-json-search {
   background: none;
   border: none;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 1.25rem;
   cursor: pointer;
   padding: 0;
@@ -2249,6 +2428,6 @@ const filteredActivityLog = computed(() => {
 }
 
 .clear-json-search:hover {
-  color: #111827;
+  color: var(--text-main);
 }
 </style>
