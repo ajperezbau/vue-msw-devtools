@@ -1865,7 +1865,7 @@ const filteredActivityLog = computed(() => {
 .search-input:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .modified-filter {
@@ -2292,6 +2292,14 @@ const filteredActivityLog = computed(() => {
   background-color: var(--input-bg);
   color: var(--text-main);
   font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.status-input:focus,
+.scenario-name-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .scenario-name-input {
@@ -2312,6 +2320,13 @@ const filteredActivityLog = computed(() => {
   resize: vertical;
   background-color: var(--input-bg);
   color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.body-textarea:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .editor-footer {
@@ -2503,6 +2518,13 @@ const filteredActivityLog = computed(() => {
   font-variant-numeric: tabular-nums;
   background-color: var(--input-bg);
   color: var(--text-main);
+  transition: all 0.2s;
+}
+
+.handler-delay-input:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .ms-label {
@@ -2629,6 +2651,12 @@ const filteredActivityLog = computed(() => {
   background-color: var(--input-bg);
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.scenario-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
 }
 
 .scenario-select.is-modified {
