@@ -10,3 +10,8 @@
 
 - **Semantic Locators:** Prefer using Playwright's semantic locators like `getByRole`, `getByLabel`, `getByPlaceholder`, `getByText`, or `getByTestId` over CSS classes or ID-based locators. This ensures better accessibility and test robustness.
 - **Role usage:** When targetting elements, use their ARIA roles (e.g., `heading`, `button`, `row`, `cell`, `textbox`).
+
+## State Management & Configuration
+
+- **Export/Import Consistency:** When adding new persistent configuration or state (like Presets, Scenarios, or Overrides), always ensure it is included in the Export and Import processes in `mswDevtools.vue`.
+- **Persistence Visibility:** Ensure that any user-created content (Custom Scenarios, Presets) is correctly reactive and persisted to `localStorage` via the handlers in `mswRegistry.ts`.

@@ -41,9 +41,26 @@ export class DevToolsPage {
     });
   }
 
-  async switchTab(tab: "Registry" | "Activity Log") {
+  async switchTab(tab: "Registry" | "Activity Log" | "Presets") {
     // Note: The UI shows "Activity Log (N)", so we use part of the name
     await this.dialog.getByRole("button", { name: tab, exact: false }).click();
+  }
+
+  async saveCurrentAsPreset(name: string) {
+    await this.switchTab("Registry");
+    await this.dialog.getByRole("button", { name: "Create Preset" }).click();
+    await this.dialog.getByRole("button", { name: "Select Visible" }).click();
+    await this.dialog.getByPlaceholder("Preset name...").fill(name);
+    await this.dialog.getByRole("button", { name: "Save Selected" }).click();
+  }
+
+  async applyPreset(name: string) {
+    await this.switchTab("Presets");
+    await this.dialog
+      .locator(".preset-card")
+      .filter({ hasText: name })
+      .getByRole("button", { name: "Apply Preset" })
+      .click();
   }
 
   async setGlobalDelay(value: number) {
@@ -153,6 +170,12 @@ export class DevToolsPage {
     await expect(
       select.locator("option", { hasText: scenarioName }),
     ).toBeAttached();
+  }
+
+  async selectScenario(handlerName: string, scenarioName: string) {
+    const row = await this.getHandlerRow(handlerName);
+    const select = row.getByRole("combobox");
+    await select.selectOption({ label: scenarioName });
   }
 
   // Activity Log methods

@@ -12,6 +12,7 @@ A powerful browser-based UI for managing [Mock Service Worker (MSW)](https://msw
 - �💾 **Persistence**: All your settings (active scenarios, delays, overrides) are persisted in `localStorage`.
 - 🔗 **URL Parameters Sync**: Deep-link to specific mock scenarios using URL query parameters.
 - ✨ **Custom Scenarios**: Save manual overrides as reusable custom scenarios.
+- 🍱 **Presets**: Group multiple handler scenarios into "Recipes" to replicate complex application flows.
 
 ## Installation
 
@@ -131,6 +132,51 @@ Handlers with higher priority will be matched first by MSW.
 register("getUserAdmin").url("/api/user/admin").priority(10).build();
 ```
 
+### Global Presets (Recipes)
+
+Sometimes you want to set the state of multiple handlers at once to replicate a specific application flow (e.g., "First Time Journey", "Subscription Expired", "Admin Dashboard").
+
+#### Defining Presets in Code
+
+Use `definePresets` to register predefined configurations.
+
+```typescript
+import { definePresets } from "msw-devtools-plugin";
+
+definePresets([
+  {
+    name: "New User Journey",
+    description:
+      "Sets all user-related handlers to 'empty' or 'first-time' scenarios",
+    scenarios: {
+      users: "empty",
+      profile: "first-login",
+      notifications: "none",
+    },
+  },
+  {
+    name: "Happy Path - Premium",
+    scenarios: {
+      users: "success",
+      billing: "active-subscription",
+    },
+  },
+]);
+```
+
+#### Creating Presets from UI
+
+The easiest way to create a preset is directly from the **Registry** tab:
+
+1. Click the **Create Preset** icon (list icon) in the top-right toolbar.
+2. Select the handlers you want to include (you can use the "Select Visible" checkbox in the header or click individual rows).
+3. Adjust the active scenarios for the selected handlers if needed.
+4. Enter a name in the selection toolbar and click **Save Selected**.
+
+The app will automatically switch to the **Presets** tab where you can see and apply your new group.
+
+These presets are persisted in `localStorage` and can be exported/imported along with your other configurations.
+
 #### Global Delay
 
 You can control network latency globally or per handler from the Devtools UI.
@@ -139,9 +185,10 @@ You can control network latency globally or per handler from the Devtools UI.
 
 Once installed, a floating gear icon will appear in your application.
 
-- **Registry Tab**: View all registered handlers, change active scenarios, and set individual delays.
+- **Registry Tab**: View all registered handlers, change active scenarios, set individual delays, and create **Presets** using selective grouping.
 - **Activity Log Tab**: See real-time request logs. Click on an entry to inspect request/response bodies.
-- **Manual Override**: Click the edit icon on any handler to manually define a fix response.
+- **Presets Tab**: View and apply saved groups of scenarios ("Recipes") to instantly change your app's state.
+- **Manual Override**: Click the edit icon on any handler to manually define a fixed response.
 - **Apply & Reload**: Some changes might require a page reload to ensure consistency.
 
 ## Keyboard Shortcuts

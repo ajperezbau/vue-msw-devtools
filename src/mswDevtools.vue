@@ -58,6 +58,14 @@
             </button>
             <button
               type="button"
+              @click="activeTab = 'presets'"
+              class="tab-button"
+              :class="{ active: activeTab === 'presets' }"
+            >
+              Presets
+            </button>
+            <button
+              type="button"
               @click="activeTab = 'log'"
               class="tab-button"
               :class="{ active: activeTab === 'log' }"
@@ -153,6 +161,29 @@
                     stroke-linejoin="round"
                     stroke-width="2"
                     d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                @click="toggleSelectionMode"
+                class="import-button"
+                :class="{ active: isSelectionMode }"
+                title="Select handlers to create a preset"
+                aria-label="Create Preset"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
                   />
                 </svg>
               </button>
@@ -279,10 +310,43 @@
           </div>
         </div>
 
+        <div
+          v-if="activeTab === 'registry' && isSelectionMode"
+          class="selection-toolbar"
+        >
+          <div class="selection-info">
+            <span class="selection-count"
+              >{{ selectedKeys.size }} handlers selected</span
+            >
+            <button @click="selectAllVisible" class="text-button">
+              Select Visible
+            </button>
+            <button @click="clearSelection" class="text-button">Clear</button>
+          </div>
+          <div class="selection-actions">
+            <input
+              v-model="newPresetName"
+              placeholder="Preset name..."
+              class="toolbar-input"
+              @keyup.enter="saveCurrentAsPreset"
+            />
+            <button
+              @click="saveCurrentAsPreset"
+              :disabled="!newPresetName || selectedKeys.size === 0"
+              class="toolbar-save-button"
+            >
+              Save Selected
+            </button>
+          </div>
+        </div>
+
         <div class="registry-container" v-if="activeTab === 'registry'">
           <table class="registry-table">
             <thead>
               <tr>
+                <th v-if="isSelectionMode" class="col-selection">
+                  <MswCheckbox v-model="isAllSelected" />
+                </th>
                 <th class="col-status"></th>
                 <th class="col-method">Method</th>
                 <th class="col-info">Handler</th>
@@ -300,8 +364,19 @@
               <tr
                 v-for="key in filteredRegistryKeys"
                 :key="key"
-                :class="{ 'is-modified': isModified(key) }"
+                :class="{
+                  'is-modified': isModified(key),
+                  'is-selected': isSelectionMode && selectedKeys.has(key),
+                }"
+                @click="isSelectionMode ? toggleKeySelection(key) : null"
               >
+                <td v-if="isSelectionMode" class="col-selection">
+                  <MswCheckbox
+                    :modelValue="selectedKeys.has(key)"
+                    @update:modelValue="toggleKeySelection(key)"
+                    @click.stop
+                  />
+                </td>
                 <td class="col-status">
                   <div class="status-indicators">
                     <span
@@ -351,6 +426,7 @@
                     v-model="scenarioState[key]"
                     class="scenario-select"
                     :class="{ 'is-modified': isModified(key) }"
+                    @click.stop
                   >
                     <option
                       v-for="scenario in scenarioRegistry[key]?.scenarios"
@@ -372,6 +448,7 @@
                       step="50"
                       placeholder="0"
                       class="handler-delay-input"
+                      @click.stop
                     />
                     <span class="ms-label">ms</span>
                   </div>
@@ -380,7 +457,7 @@
                   <div class="action-buttons">
                     <button
                       type="button"
-                      @click="openOverrideEditor(key)"
+                      @click.stop="openOverrideEditor(key)"
                       class="icon-button"
                       :class="{ 'has-override': customOverrides[key]?.enabled }"
                       title="Custom response override"
@@ -402,7 +479,7 @@
                     </button>
                     <button
                       type="button"
-                      @click="viewLogForKey(key)"
+                      @click.stop="viewLogForKey(key)"
                       class="icon-button"
                       title="View logs for this handler"
                     >
@@ -480,6 +557,12 @@
                   :label-style="{ marginBottom: '0.75rem' }"
                 >
                   Custom Handlers (JSON scenarios)
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.customPresets"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Custom Presets (Recipes)
                 </MswCheckbox>
                 <MswCheckbox
                   v-model="exportOptions.overrides"
@@ -601,6 +684,72 @@
                     ? "Save as Scenario"
                     : "Save & Enable Override"
                 }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="presets-container" v-if="activeTab === 'presets'">
+          <div v-if="allPresets.length === 0" class="empty-state">
+            No presets defined. Use <code>definePresets()</code> or the "Create
+            Preset" button in the Registry tab to add some.
+          </div>
+          <div v-else class="presets-grid">
+            <div
+              v-for="preset in allPresets"
+              :key="preset.name"
+              class="preset-card"
+              :class="{ 'is-custom': preset.isCustom }"
+            >
+              <div class="preset-info">
+                <div class="preset-title-row">
+                  <h3 class="preset-name">{{ preset.name }}</h3>
+                  <span v-if="preset.isCustom" class="custom-badge"
+                    >User Created</span
+                  >
+                  <button
+                    v-if="preset.isCustom"
+                    type="button"
+                    @click="deleteCustomPreset(preset.name)"
+                    class="delete-preset-button"
+                    title="Delete Preset"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                <p v-if="preset.description" class="preset-description">
+                  {{ preset.description }}
+                </p>
+                <div class="preset-scenarios-preview">
+                  <span
+                    v-for="(scenario, hKey) in preset.scenarios"
+                    :key="hKey"
+                    class="preview-tag"
+                  >
+                    <span class="preview-key">{{ hKey }}:</span>
+                    {{ scenario }}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                @click="applyPreset(preset.name)"
+                class="apply-preset-button"
+              >
+                Apply Preset
               </button>
             </div>
           </div>
@@ -883,22 +1032,69 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MswCheckbox from "./components/MswCheckbox.vue";
 import {
   activityLog,
+  applyPreset,
   clearActivityLog,
   customOverrides,
+  customPresets,
   customScenarios,
   globalDelay,
   handlerDelays,
+  presets,
   scenarioRegistry,
   scenarioState,
   type LogEntry,
 } from "./mswRegistry";
 
 const isOpen = ref(false);
-const activeTab = ref<"registry" | "log">("registry");
+const activeTab = ref<"registry" | "log" | "presets">("registry");
 const searchQuery = ref(localStorage.getItem("msw-scenarios-filter") || "");
 const theme = ref<"light" | "dark">(
   (localStorage.getItem("msw-devtools-theme") as "light" | "dark") || "dark",
 );
+
+const isSelectionMode = ref(false);
+const selectedKeys = ref(new Set<string>());
+
+const toggleSelectionMode = () => {
+  isSelectionMode.value = !isSelectionMode.value;
+  if (!isSelectionMode.value) {
+    selectedKeys.value.clear();
+  }
+};
+
+const isAllSelected = computed({
+  get: () => {
+    if (filteredRegistryKeys.value.length === 0) return false;
+    return filteredRegistryKeys.value.every((key) =>
+      selectedKeys.value.has(key),
+    );
+  },
+  set: (val) => {
+    if (val) {
+      filteredRegistryKeys.value.forEach((key) => selectedKeys.value.add(key));
+    } else {
+      filteredRegistryKeys.value.forEach((key) =>
+        selectedKeys.value.delete(key),
+      );
+    }
+  },
+});
+
+const toggleKeySelection = (key: string) => {
+  if (selectedKeys.value.has(key)) {
+    selectedKeys.value.delete(key);
+  } else {
+    selectedKeys.value.add(key);
+  }
+};
+
+const selectAllVisible = () => {
+  filteredRegistryKeys.value.forEach((key) => selectedKeys.value.add(key));
+};
+
+const clearSelection = () => {
+  selectedKeys.value.clear();
+};
 
 const showExportDialog = ref(false);
 const exportOptions = ref({
@@ -906,6 +1102,7 @@ const exportOptions = ref({
   delays: true,
   overrides: true,
   customScenarios: true,
+  customPresets: true,
   globalDelay: true,
 });
 
@@ -1028,6 +1225,66 @@ const expandedLogId = ref<string | null>(null);
 const logFilterKey = ref<string | null>(null);
 const selectedMethods = ref<Set<string>>(new Set(["ALL"]));
 const logSearchPath = ref("");
+
+const newPresetName = ref("");
+
+const allPresets = computed(() => {
+  return [
+    ...presets.map((p) => ({ ...p, isCustom: false })),
+    ...customPresets.map((p) => ({ ...p, isCustom: true })),
+  ];
+});
+
+const saveCurrentAsPreset = () => {
+  if (!newPresetName.value.trim()) return;
+
+  const scenarios: Record<string, string> = {};
+
+  let keysToInclude: string[];
+  if (isSelectionMode.value && selectedKeys.value.size > 0) {
+    keysToInclude = Array.from(selectedKeys.value);
+  } else {
+    keysToInclude = Object.keys(scenarioRegistry);
+  }
+
+  keysToInclude.forEach((key) => {
+    const val = scenarioState[key];
+    if (val) {
+      scenarios[key] = val;
+    }
+  });
+
+  const name = newPresetName.value.trim();
+  const existingIndex = customPresets.findIndex((p) => p.name === name);
+
+  if (existingIndex !== -1) {
+    customPresets[existingIndex] = {
+      name,
+      scenarios,
+    };
+  } else {
+    customPresets.push({
+      name,
+      scenarios,
+    });
+  }
+
+  newPresetName.value = "";
+
+  if (isSelectionMode.value) {
+    isSelectionMode.value = false;
+    selectedKeys.value.clear();
+  }
+
+  activeTab.value = "presets";
+};
+
+const deleteCustomPreset = (name: string) => {
+  const index = customPresets.findIndex((p) => p.name === name);
+  if (index !== -1) {
+    customPresets.splice(index, 1);
+  }
+};
 
 const editingOverrideKey = ref<string | null>(null);
 const overrideForm = ref({
@@ -1333,6 +1590,9 @@ const exportScenarios = () => {
   if (exportOptions.value.customScenarios) {
     data.customScenarios = customScenarios;
   }
+  if (exportOptions.value.customPresets) {
+    data.customPresets = customPresets;
+  }
   if (exportOptions.value.globalDelay) {
     data.globalDelay = globalDelay.value;
   }
@@ -1388,6 +1648,9 @@ const handleImport = (event: Event) => {
           delete customScenarios[key];
         });
         Object.assign(customScenarios, data.customScenarios);
+      }
+      if (data.customPresets && Array.isArray(data.customPresets)) {
+        customPresets.splice(0, customPresets.length, ...data.customPresets);
       }
       if (data.globalDelay !== undefined) {
         globalDelay.value = data.globalDelay;
@@ -1721,15 +1984,27 @@ const filteredActivityLog = computed(() => {
   align-items: center;
 }
 
-.button-group .export-button {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
+.button-group button {
+  border-radius: 0;
+  margin-left: -1px;
 }
 
-.button-group .import-button {
-  border-top-left-radius: 0;
-  border-bottom-left-radius: 0;
-  margin-left: -1px;
+.button-group button:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+  margin-left: 0;
+}
+
+.button-group button:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+.button-group button.active {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  color: white;
+  z-index: 2;
 }
 
 .clear-button:hover,
@@ -1773,6 +2048,77 @@ const filteredActivityLog = computed(() => {
 .close-button:hover {
   background-color: var(--bg-tertiary);
   color: var(--text-main);
+}
+
+.selection-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--accent-color);
+  color: white;
+  margin: 0.5rem 1rem 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selection-count {
+  font-weight: 600;
+}
+
+.selection-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.toolbar-input {
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 4px;
+  padding: 0.4rem 0.75rem;
+  color: white;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.toolbar-input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.toolbar-save-button {
+  background: white;
+  color: var(--accent-color);
+  border: none;
+  padding: 0.4rem 1rem;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+}
+
+.toolbar-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.col-selection {
+  width: 40px;
+  text-align: center;
+}
+
+.registry-table tr.is-selected {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.registry-table tr.is-selected td {
+  border-bottom-color: var(--accent-color);
 }
 
 .search-container {
@@ -2422,6 +2768,284 @@ const filteredActivityLog = computed(() => {
 .icon-button:hover {
   background-color: var(--bg-tertiary);
   color: var(--accent-color);
+}
+
+.presets-container {
+  padding: 1.5rem;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+}
+
+.presets-header {
+  margin-bottom: 2rem;
+  background: var(--bg-tertiary);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.create-preset-form {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.advanced-toggle-button {
+  padding: 0.625rem;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.advanced-toggle-button:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.advanced-toggle-button.active {
+  background: var(--accent-soft);
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.preset-advanced-panel {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px dashed var(--border-color);
+}
+
+.advanced-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.advanced-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.advanced-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.text-button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.text-button:hover {
+  text-decoration: underline;
+}
+
+.preset-handler-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: var(--bg-main);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.preset-handler-item {
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+.handler-key-label {
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  display: inline-block;
+}
+
+.handler-current-scenario {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-left: 0.25rem;
+  font-weight: normal;
+}
+
+.advanced-hint {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-top: 0.75rem;
+  font-style: italic;
+}
+
+.preset-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-main);
+  outline: none;
+  font-size: 0.875rem;
+}
+
+.preset-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.save-preset-button {
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-main);
+  color: var(--text-main);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.save-preset-button:hover:not(:disabled) {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.save-preset-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.presets-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.preset-card {
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.preset-card:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+  box-shadow: var(--modal-shadow);
+}
+
+.preset-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.preset-name {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.custom-badge {
+  font-size: 0.65rem;
+  padding: 0.15rem 0.4rem;
+  background: var(--accent-soft);
+  color: var(--accent-color);
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+.delete-preset-button {
+  padding: 0.25rem;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0.5rem;
+}
+
+.delete-preset-button:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.preset-description {
+  margin: 0 0 1.25rem 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.preset-scenarios-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.preview-tag {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.625rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+}
+
+.preview-key {
+  font-weight: 600;
+  color: var(--text-tertiary);
+  margin-right: 0.25rem;
+}
+
+.apply-preset-button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.apply-preset-button:hover {
+  background: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+.apply-preset-button:active {
+  transform: scale(0.98);
 }
 
 .registry-table {

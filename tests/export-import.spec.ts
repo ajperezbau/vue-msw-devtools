@@ -23,6 +23,7 @@ test.describe("MSW DevTools - Export and Import", () => {
     await devToolsPage.expectExportOption("Select All", true);
     await devToolsPage.expectExportOption("Active Scenarios Selection", true);
     await devToolsPage.expectExportOption("Handler Delays", true);
+    await devToolsPage.expectExportOption("Custom Presets (Recipes)", true);
 
     // Uncheck one -> Select All becomes unchecked
     await devToolsPage.toggleExportOption("Handler Delays");
@@ -38,6 +39,7 @@ test.describe("MSW DevTools - Export and Import", () => {
     await devToolsPage.expectExportOption("Select All", false);
     await devToolsPage.expectExportOption("Active Scenarios Selection", false);
     await devToolsPage.expectExportOption("Handler Delays", false);
+    await devToolsPage.expectExportOption("Custom Presets (Recipes)", false);
 
     // Download button should be disabled when nothing is selected
     const downloadBtn = devToolsPage.dialog.getByRole("button", {
@@ -60,6 +62,26 @@ test.describe("MSW DevTools - Export and Import", () => {
     expect(content).toHaveProperty("scenarios");
   });
 
+  test("should export custom presets", async () => {
+    // 1. Create a custom preset first
+    const presetName = "Export Test Preset";
+    await devToolsPage.saveCurrentAsPreset(presetName);
+
+    // 2. Export
+    await devToolsPage.openExportDialog();
+    const download = await devToolsPage.downloadExport();
+    const downloadPath = await download.path();
+    const content = JSON.parse(fs.readFileSync(downloadPath!, "utf8"));
+
+    // 3. Verify presets are in the JSON
+    expect(content).toHaveProperty("customPresets");
+    const presets = content.customPresets;
+    expect(Array.isArray(presets)).toBe(true);
+    const myPreset = presets.find((p: any) => p.name === presetName);
+    expect(myPreset).toBeDefined();
+    expect(myPreset.scenarios).toBeDefined();
+  });
+
   test("should import settings from a JSON file", async ({ page }) => {
     const testData = {
       scenarios: {
@@ -68,6 +90,12 @@ test.describe("MSW DevTools - Export and Import", () => {
       delays: {
         users: 555,
       },
+      customPresets: [
+        {
+          name: "Imported Preset",
+          scenarios: { users: "empty" },
+        },
+      ],
       globalDelay: 123,
       version: 1,
     };
@@ -95,6 +123,12 @@ test.describe("MSW DevTools - Export and Import", () => {
 
     // Check global delay
     await expect(devToolsPage.globalDelayNumberInput).toHaveValue("123");
+
+    // Check preset
+    await devToolsPage.switchTab("Presets");
+    await expect(
+      page.locator(".preset-card", { hasText: "Imported Preset" }),
+    ).toBeVisible();
 
     // Cleanup
     if (fs.existsSync(tempFilePath)) {

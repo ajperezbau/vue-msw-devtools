@@ -11,6 +11,7 @@ const DELAY_KEY = "msw-delay";
 const HANDLER_DELAY_KEY = "msw-handler-delays";
 const OVERRIDES_KEY = "msw-overrides";
 const CUSTOM_SCENARIOS_KEY = "msw-custom-scenarios";
+const CUSTOM_PRESETS_KEY = "msw-custom-presets";
 
 const getPersistedScenarios = (): Record<string, string> => {
   try {
@@ -62,6 +63,15 @@ const getPersistedCustomScenarios = (): Record<
   }
 };
 
+const getPersistedCustomPresets = (): Preset[] => {
+  try {
+    const stored = localStorage.getItem(CUSTOM_PRESETS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
 export const scenarioState = reactive<Record<string, string>>(
   getPersistedScenarios(),
 );
@@ -74,6 +84,7 @@ export const customOverrides = reactive<Record<string, CustomOverride>>(
 export const customScenarios = reactive<
   Record<string, Record<string, CustomScenario>>
 >(getPersistedCustomScenarios());
+export const customPresets = reactive<Preset[]>(getPersistedCustomPresets());
 export const globalDelay = ref(Number(localStorage.getItem(DELAY_KEY)) || 0);
 
 interface HandlerMetadata {
@@ -97,6 +108,14 @@ export interface LogEntry {
 
 export const scenarioRegistry = reactive<Record<string, HandlerMetadata>>({});
 export const activityLog = reactive<LogEntry[]>([]);
+
+export interface Preset {
+  name: string;
+  description?: string;
+  scenarios: Record<string, string>;
+}
+
+export const presets = reactive<Preset[]>([]);
 
 interface RegisteredHandler {
   key: string;
@@ -168,6 +187,32 @@ export const clearActivityLog = () => {
   activityLog.length = 0;
 };
 
+export const registerPreset = (preset: Preset) => {
+  const index = presets.findIndex((p) => p.name === preset.name);
+  if (index !== -1) {
+    presets[index] = preset;
+  } else {
+    presets.push(preset);
+  }
+};
+
+export const definePresets = (newPresets: Preset[]) => {
+  newPresets.forEach(registerPreset);
+};
+
+export const applyPreset = (presetName: string) => {
+  const allPresets = [...presets, ...customPresets];
+  const preset = allPresets.find((p) => p.name === presetName);
+  if (preset) {
+    Object.entries(preset.scenarios).forEach(([key, scenario]) => {
+      // Solo aplicar si el handler existe
+      if (scenarioRegistry[key]) {
+        scenarioState[key] = scenario;
+      }
+    });
+  }
+};
+
 const BUILT_IN_SCENARIOS: Record<string, HttpResponseResolver> = {
   ServerError: () => new HttpResponse(null, { status: 500 }),
 };
@@ -203,6 +248,14 @@ watch(
   customScenarios,
   (newScenarios) => {
     localStorage.setItem(CUSTOM_SCENARIOS_KEY, JSON.stringify(newScenarios));
+  },
+  { deep: true },
+);
+
+watch(
+  customPresets,
+  (newPresets) => {
+    localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(newPresets));
   },
   { deep: true },
 );
