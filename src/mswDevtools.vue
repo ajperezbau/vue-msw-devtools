@@ -538,6 +538,19 @@
             </div>
             <div class="editor-body">
               <div class="input-group">
+                <label>Scenario Name (Optional)</label>
+                <div class="input-subtitle">
+                  If provided, this will be saved as a reusable scenario and
+                  automatically selected.
+                </div>
+                <input
+                  type="text"
+                  v-model="overrideForm.scenarioName"
+                  class="scenario-name-input"
+                  placeholder="e.g. Empty Results, Error Page..."
+                />
+              </div>
+              <div class="input-group">
                 <label>HTTP Status</label>
                 <input
                   type="number"
@@ -568,17 +581,9 @@
                 type="button"
                 @click="clearOverride"
                 class="secondary-button"
-                v-if="customOverrides[editingOverrideKey]"
+                v-if="editingOverrideKey"
               >
-                Clear Override
-              </button>
-              <button
-                type="button"
-                @click="saveAsScenario"
-                class="secondary-button"
-                title="Save this response as a reusable scenario"
-              >
-                Save as Scenario
+                Clear Current Override
               </button>
               <div class="spacer"></div>
               <button
@@ -593,7 +598,11 @@
                 @click="saveOverride"
                 class="primary-button"
               >
-                Save & Enable
+                {{
+                  overrideForm.scenarioName
+                    ? "Save as Scenario"
+                    : "Save & Enable Override"
+                }}
               </button>
             </div>
           </div>
@@ -1027,6 +1036,7 @@ const overrideForm = ref({
   body: "",
   status: 200,
   enabled: true,
+  scenarioName: "",
 });
 
 const openOverrideEditor = (key: string) => {
@@ -1036,6 +1046,7 @@ const openOverrideEditor = (key: string) => {
     body: existing?.body ?? "",
     status: existing?.status ?? 200,
     enabled: true,
+    scenarioName: "",
   };
 };
 
@@ -1045,14 +1056,42 @@ const openOverrideEditorFromLog = (entry: LogEntry) => {
     body: formatBody(entry.responseBody),
     status: entry.status,
     enabled: true,
+    scenarioName: "",
   };
 };
 
 const saveOverride = () => {
   if (editingOverrideKey.value) {
-    customOverrides[editingOverrideKey.value] = {
-      ...overrideForm.value,
-    };
+    const key = editingOverrideKey.value;
+    const { scenarioName, ...formData } = overrideForm.value;
+
+    if (scenarioName.trim()) {
+      // Save as reusable scenario
+      if (!customScenarios[key]) {
+        customScenarios[key] = {};
+      }
+
+      customScenarios[key][scenarioName] = {
+        body: formData.body,
+        status: formData.status,
+      };
+
+      // Update registry information
+      if (
+        scenarioRegistry[key] &&
+        !scenarioRegistry[key].scenarios.includes(scenarioName)
+      ) {
+        scenarioRegistry[key].scenarios.push(scenarioName);
+      }
+
+      // Automatically select the new scenario and remove any existing manual override
+      scenarioState[key] = scenarioName;
+      delete customOverrides[key];
+    } else {
+      // Regular manual override
+      customOverrides[key] = formData;
+    }
+
     editingOverrideKey.value = null;
   }
 };
@@ -1068,38 +1107,6 @@ const formatEditorJson = () => {
   } catch {
     // If it's not valid JSON, maybe it's just a string, we don't format it
   }
-};
-
-const saveAsScenario = () => {
-  if (!editingOverrideKey.value) return;
-
-  const scenarioName = window.prompt("Enter a name for this custom scenario:");
-  if (!scenarioName) return;
-
-  const key = editingOverrideKey.value;
-
-  if (!customScenarios[key]) {
-    customScenarios[key] = {};
-  }
-
-  customScenarios[key][scenarioName] = {
-    body: overrideForm.value.body,
-    status: overrideForm.value.status,
-  };
-
-  // Update registry so it shows up in the dropdown immediately
-  if (
-    scenarioRegistry[key] &&
-    !scenarioRegistry[key].scenarios.includes(scenarioName)
-  ) {
-    scenarioRegistry[key].scenarios.push(scenarioName);
-  }
-
-  // Select the new scenario and disable manual override so it takes effect
-  scenarioState[key] = scenarioName;
-  delete customOverrides[key];
-
-  editingOverrideKey.value = null;
 };
 
 const clearOverride = () => {
@@ -2249,6 +2256,14 @@ const filteredActivityLog = computed(() => {
   color: var(--text-secondary);
 }
 
+.input-subtitle {
+  font-size: 0.6875rem;
+  color: var(--text-tertiary);
+  margin-top: -0.25rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.2;
+}
+
 .label-with-action {
   display: flex;
   justify-content: space-between;
@@ -2271,13 +2286,22 @@ const filteredActivityLog = computed(() => {
   border-color: var(--text-tertiary);
 }
 
-.status-input {
-  width: 100px;
+.status-input,
+.scenario-name-input {
   padding: 0.5rem;
   border: 1px solid var(--border-color);
   border-radius: 0.375rem;
   background-color: var(--input-bg);
   color: var(--text-main);
+  font-size: 0.875rem;
+}
+
+.scenario-name-input {
+  width: 100%;
+}
+
+.status-input {
+  width: 100px;
 }
 
 .body-textarea {

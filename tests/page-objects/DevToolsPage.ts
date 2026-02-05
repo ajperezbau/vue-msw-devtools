@@ -234,4 +234,27 @@ export class DevToolsPage {
     const fileChooser = await fileChooserPromise;
     await fileChooser.setFiles(filePath);
   }
+
+  // Override / Custom Scenario methods
+  async openOverrideModal(handlerName: string) {
+    const row = await this.getHandlerRow(handlerName);
+    await row.getByRole("button", { name: /Override/i }).click();
+  }
+
+  async fillOverrideBody(body: string) {
+    const textarea = this.dialog.locator("textarea.body-textarea");
+    await textarea.fill(body);
+  }
+
+  async saveOverride(scenarioName?: string) {
+    if (scenarioName) {
+      await this.dialog
+        .getByPlaceholder(/e\.g\..*Empty Results/)
+        .fill(scenarioName);
+    }
+    const buttonLabel = scenarioName
+      ? "Save as Scenario"
+      : "Save & Enable Override";
+    await this.dialog.getByRole("button", { name: buttonLabel }).click();
+  }
 }
