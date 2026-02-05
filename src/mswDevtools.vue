@@ -124,6 +124,29 @@
             </button>
             <button
               type="button"
+              @click="showExportDialog = true"
+              class="export-button"
+              title="Export scenarios to JSON"
+            >
+              Export
+            </button>
+            <button
+              type="button"
+              @click="triggerImport"
+              class="import-button"
+              title="Import scenarios from JSON"
+            >
+              Import
+            </button>
+            <input
+              type="file"
+              ref="importFile"
+              style="display: none"
+              accept=".json"
+              @change="handleImport"
+            />
+            <button
+              type="button"
               @click="clearConfigs"
               class="clear-button"
               title="Clear all stored scenarios"
@@ -195,14 +218,9 @@
             </button>
           </div>
           <div class="modified-filter">
-            <label class="filter-label">
-              <input
-                type="checkbox"
-                v-model="showOnlyModified"
-                class="filter-checkbox"
-              />
+            <MswCheckbox v-model="showOnlyModified">
               Modified only
-            </label>
+            </MswCheckbox>
           </div>
           <div class="global-delay-control">
             <label for="global-delay">Global Delay:</label>
@@ -380,6 +398,100 @@
               </tr>
             </tbody>
           </table>
+        </div>
+
+        <!-- Export Options Dialog -->
+        <div v-if="showExportDialog" class="override-editor-overlay">
+          <div class="override-editor-content">
+            <div class="editor-header">
+              <h3>Export Options</h3>
+              <button
+                type="button"
+                @click="showExportDialog = false"
+                class="close-button"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div class="editor-body">
+              <p style="margin-bottom: 1rem; color: var(--text-secondary)">
+                Select what you want to include in the export:
+              </p>
+              <div class="export-options-list">
+                <MswCheckbox
+                  v-model="allOptionsSelected"
+                  :label-style="{
+                    marginBottom: '1rem',
+                    paddingBottom: '0.75rem',
+                    borderBottom: '1px solid var(--border-color)',
+                  }"
+                >
+                  <span style="font-weight: 700">Select All</span>
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.scenarios"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Active Scenarios Selection
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.customScenarios"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Custom Handlers (JSON scenarios)
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.overrides"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Manual Overrides
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.delays"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Handler Delays
+                </MswCheckbox>
+                <MswCheckbox
+                  v-model="exportOptions.globalDelay"
+                  :label-style="{ marginBottom: '0.75rem' }"
+                >
+                  Global Delay Settings
+                </MswCheckbox>
+              </div>
+            </div>
+            <div class="editor-footer">
+              <button
+                type="button"
+                @click="showExportDialog = false"
+                class="secondary-button"
+              >
+                Cancel
+              </button>
+              <div class="spacer"></div>
+              <button
+                type="button"
+                @click="exportScenarios"
+                class="primary-button"
+                :disabled="Object.values(exportOptions).every((v) => !v)"
+              >
+                Download JSON
+              </button>
+            </div>
+          </div>
         </div>
 
         <div v-if="editingOverrideKey" class="override-editor-overlay">
@@ -731,6 +843,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import MswCheckbox from "./components/MswCheckbox.vue";
 import {
   activityLog,
   clearActivityLog,
@@ -749,6 +862,24 @@ const searchQuery = ref(localStorage.getItem("msw-scenarios-filter") || "");
 const theme = ref<"light" | "dark">(
   (localStorage.getItem("msw-devtools-theme") as "light" | "dark") || "dark",
 );
+
+const showExportDialog = ref(false);
+const exportOptions = ref({
+  scenarios: true,
+  delays: true,
+  overrides: true,
+  customScenarios: true,
+  globalDelay: true,
+});
+
+const allOptionsSelected = computed({
+  get: () => Object.values(exportOptions.value).every((v) => v),
+  set: (value) => {
+    Object.keys(exportOptions.value).forEach((key) => {
+      (exportOptions.value as any)[key] = value;
+    });
+  },
+});
 
 const toggleTheme = () => {
   theme.value = theme.value === "light" ? "dark" : "light";
@@ -1149,6 +1280,101 @@ const clearConfigs = () => {
   });
 };
 
+const exportScenarios = () => {
+  const data: any = {
+    version: 1,
+    timestamp: Date.now(),
+  };
+
+  if (exportOptions.value.scenarios) {
+    data.scenarios = scenarioState;
+  }
+  if (exportOptions.value.delays) {
+    data.delays = handlerDelays;
+  }
+  if (exportOptions.value.overrides) {
+    data.overrides = customOverrides;
+  }
+  if (exportOptions.value.customScenarios) {
+    data.customScenarios = customScenarios;
+  }
+  if (exportOptions.value.globalDelay) {
+    data.globalDelay = globalDelay.value;
+  }
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `msw-scenarios-${new Date().toISOString().split("T")[0]}.json`;
+  link.click();
+  URL.revokeObjectURL(url);
+  showExportDialog.value = false;
+};
+
+const importFile = ref<HTMLInputElement | null>(null);
+
+const triggerImport = () => {
+  importFile.value?.click();
+};
+
+const handleImport = (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  const file = target.files?.[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target?.result as string);
+
+      if (data.scenarios) {
+        Object.keys(scenarioState).forEach((key) => {
+          delete scenarioState[key];
+        });
+        Object.assign(scenarioState, data.scenarios);
+      }
+      if (data.delays) {
+        Object.keys(handlerDelays).forEach((key) => {
+          delete handlerDelays[key];
+        });
+        Object.assign(handlerDelays, data.delays);
+      }
+      if (data.overrides) {
+        Object.keys(customOverrides).forEach((key) => {
+          delete customOverrides[key];
+        });
+        Object.assign(customOverrides, data.overrides);
+      }
+      if (data.customScenarios) {
+        Object.keys(customScenarios).forEach((key) => {
+          delete customScenarios[key];
+        });
+        Object.assign(customScenarios, data.customScenarios);
+      }
+      if (data.globalDelay !== undefined) {
+        globalDelay.value = data.globalDelay;
+      }
+
+      // eslint-disable-next-line no-alert
+      alert(
+        "Scenarios imported successfully. Page will reload to apply changes.",
+      );
+      reloadPage();
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to import scenarios:", err);
+      // eslint-disable-next-line no-alert
+      alert("Failed to import scenarios. Invalid file format.");
+    } finally {
+      target.value = ""; // Reset input
+    }
+  };
+  reader.readAsText(file);
+};
+
 const isModified = (key: string) => {
   const handler = scenarioRegistry[key];
   const defaultScenario = handler?.isNative ? "original" : "default";
@@ -1429,6 +1655,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .clear-button,
+.export-button,
+.import-button,
 .theme-toggle-button {
   background-color: var(--bg-main);
   color: var(--text-secondary);
@@ -1449,6 +1677,8 @@ const filteredActivityLog = computed(() => {
 }
 
 .clear-button:hover,
+.export-button:hover,
+.import-button:hover,
 .theme-toggle-button:hover {
   background-color: var(--bg-tertiary);
   border-color: var(--accent-color);
@@ -1585,24 +1815,6 @@ const filteredActivityLog = computed(() => {
   display: flex;
   align-items: center;
   flex-shrink: 0;
-}
-
-.filter-label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  user-select: none;
-}
-
-.filter-checkbox {
-  width: 1rem;
-  height: 1rem;
-  cursor: pointer;
-  accent-color: var(--accent-color);
 }
 
 .registry-container {
@@ -1919,6 +2131,12 @@ const filteredActivityLog = computed(() => {
 
 .mini-action-button:hover {
   background-color: var(--accent-hover);
+}
+
+.export-options-list {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
 }
 
 .override-editor-overlay {
