@@ -113,6 +113,52 @@
                 <path d="m19.07 4.93-1.41 1.41" />
               </svg>
             </button>
+            <div class="button-group">
+              <button
+                type="button"
+                @click="showExportDialog = true"
+                class="export-button"
+                title="Export scenarios to JSON"
+                aria-label="Export Scenarios"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
+                </svg>
+              </button>
+              <button
+                type="button"
+                @click="triggerImport"
+                class="import-button"
+                title="Import scenarios from JSON"
+                aria-label="Import Scenarios"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+              </button>
+            </div>
             <button
               v-if="activeTab === 'log'"
               type="button"
@@ -121,22 +167,6 @@
               title="Clear log"
             >
               Clear Log
-            </button>
-            <button
-              type="button"
-              @click="showExportDialog = true"
-              class="export-button"
-              title="Export scenarios to JSON"
-            >
-              Export
-            </button>
-            <button
-              type="button"
-              @click="triggerImport"
-              class="import-button"
-              title="Import scenarios from JSON"
-            >
-              Import
             </button>
             <input
               type="file"
@@ -1670,10 +1700,31 @@ const filteredActivityLog = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
+.export-button,
+.import-button,
 .theme-toggle-button {
   padding: 0.5rem;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.button-group {
+  display: flex;
+  align-items: center;
+}
+
+.button-group .export-button {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.button-group .import-button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
 }
 
 .clear-button:hover,
@@ -1683,6 +1734,7 @@ const filteredActivityLog = computed(() => {
   background-color: var(--bg-tertiary);
   border-color: var(--accent-color);
   color: var(--accent-color);
+  z-index: 1;
 }
 
 .reload-button {
