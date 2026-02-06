@@ -280,4 +280,21 @@ export class DevToolsPage {
       : "Save & Enable Override";
     await this.dialog.getByRole("button", { name: buttonLabel }).click();
   }
+
+  async resetAll() {
+    await this.dialog
+      .getByRole("button", { name: "Reset", exact: true })
+      .click();
+    this.page.once("dialog", (dialog) => dialog.accept());
+    await this.dialog.getByRole("button", { name: "Reset All (Full)" }).click();
+  }
+
+  async resetScenariosOnly() {
+    await this.dialog
+      .getByRole("button", { name: "Reset", exact: true })
+      .click();
+    await this.dialog
+      .getByRole("button", { name: "Reset Scenarios Only" })
+      .click();
+  }
 }

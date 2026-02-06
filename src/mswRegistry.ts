@@ -91,6 +91,7 @@ interface HandlerMetadata {
   url: string;
   method: string;
   scenarios: string[];
+  originalScenarios: string[];
   isNative?: boolean;
 }
 
@@ -335,13 +336,16 @@ export class MswHandlerBuilder<T extends string = "default"> {
     const priority = this._priority;
     const isNative = this._isNative;
 
+    const originalScenarios = Object.keys(scenarios);
+
     // Registrar metadatos
     scenarioRegistry[key] = {
       url,
       method: method.toUpperCase(),
       isNative,
+      originalScenarios,
       scenarios: [
-        ...Object.keys(scenarios),
+        ...originalScenarios,
         ...Object.keys(customScenarios[key] || {}),
       ].filter((v, i, a) => a.indexOf(v) === i), // Unificar y evitar duplicados
     };

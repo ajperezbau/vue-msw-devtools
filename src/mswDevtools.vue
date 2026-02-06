@@ -204,14 +204,40 @@
               accept=".json"
               @change="handleImport"
             />
-            <button
-              type="button"
-              @click="clearConfigs"
-              class="clear-button"
-              title="Clear all stored scenarios"
-            >
-              Reset All
-            </button>
+            <div class="reset-menu-container" ref="resetMenuContainer">
+              <button
+                type="button"
+                @click="showResetMenu = !showResetMenu"
+                class="clear-button reset-button"
+                :class="{ 'menu-open': showResetMenu }"
+                title="Reset options"
+              >
+                Reset
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 ml-2 transition-transform"
+                  :class="{ 'rotate-180': showResetMenu }"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              <div v-if="showResetMenu" class="reset-dropdown">
+                <button type="button" @click="resetScenariosOnly">
+                  Reset Scenarios Only
+                </button>
+                <button type="button" @click="clearConfigs" class="danger">
+                  Reset All (Full)
+                </button>
+              </div>
+            </div>
             <button
               type="button"
               @click="reloadPage"
@@ -1048,6 +1074,8 @@ import {
 const isOpen = ref(false);
 const activeTab = ref<"registry" | "log" | "presets">("registry");
 const searchQuery = ref(localStorage.getItem("msw-scenarios-filter") || "");
+const resetMenuContainer = ref<HTMLElement | null>(null);
+
 const theme = ref<"light" | "dark">(
   (localStorage.getItem("msw-devtools-theme") as "light" | "dark") || "dark",
 );
@@ -1533,11 +1561,13 @@ onMounted(() => {
 
   window.addEventListener("keydown", handleKeyDown);
   window.addEventListener("resize", handleResize);
+  document.addEventListener("click", handleOutsideClick);
 });
 
 onUnmounted(() => {
   window.removeEventListener("keydown", handleKeyDown);
   window.removeEventListener("resize", handleResize);
+  document.removeEventListener("click", handleOutsideClick);
 });
 
 const focusSearch = async () => {
@@ -1545,15 +1575,53 @@ const focusSearch = async () => {
   searchInput.value?.focus();
 };
 
+const showResetMenu = ref(false);
+
+const handleOutsideClick = (event: MouseEvent) => {
+  if (
+    showResetMenu.value &&
+    resetMenuContainer.value &&
+    !resetMenuContainer.value.contains(event.target as Node)
+  ) {
+    showResetMenu.value = false;
+  }
+};
+
+const resetScenariosOnly = () => {
+  Object.keys(scenarioState).forEach((key) => {
+    const handler = scenarioRegistry[key];
+    scenarioState[key] = handler?.isNative ? "original" : "default";
+  });
+
+  // Also clear overrides as they affects the scenario returned
+  Object.keys(customOverrides).forEach((key) => {
+    delete customOverrides[key];
+  });
+
+  showResetMenu.value = false;
+};
+
 const clearConfigs = () => {
+  // eslint-disable-next-line no-alert
+  const confirmed = window.confirm(
+    "This will clear all saved scenarios, delays, overrides, and presets. Are you sure?",
+  );
+  if (!confirmed) {
+    showResetMenu.value = false;
+    return;
+  }
+
   localStorage.removeItem("msw-scenarios");
+  localStorage.removeItem("msw-delay");
   localStorage.removeItem("msw-handler-delays");
   localStorage.removeItem("msw-overrides");
   localStorage.removeItem("msw-custom-scenarios");
+  localStorage.removeItem("msw-custom-presets");
 
-  // Reset all scenarios to 'default' in the reactive state
+  // Reset all scenarios to their appropriate default in the reactive state
   Object.keys(scenarioState).forEach((key) => {
-    scenarioState[key] = "default";
+    const handler = scenarioRegistry[key];
+    scenarioState[key] = handler?.isNative ? "original" : "default";
   });
 
   // Reset all handler delays to 0
@@ -1570,6 +1638,22 @@ const clearConfigs = () => {
   Object.keys(customScenarios).forEach((key) => {
     delete customScenarios[key];
   });
+
+  // Re-sync scenarioRegistry with original scenarios (removing custom ones)
+  Object.keys(scenarioRegistry).forEach((key) => {
+    const handler = scenarioRegistry[key];
+    if (handler && handler.originalScenarios) {
+      handler.scenarios = [...handler.originalScenarios];
+    }
+  });
+
+  // Clear custom presets
+  customPresets.splice(0, customPresets.length);
+
+  // Reset global delay
+  globalDelay.value = 0;
+
+  showResetMenu.value = false;
 };
 
 const exportScenarios = () => {
@@ -1791,6 +1875,12 @@ const filteredActivityLog = computed(() => {
 }
 .w-3 {
   width: 0.75rem;
+}
+.ml-1 {
+  margin-left: 0.25rem;
+}
+.ml-2 {
+  margin-left: 0.5rem;
 }
 
 .scenario-selector-overlay {
@@ -2031,6 +2121,71 @@ const filteredActivityLog = computed(() => {
 
 .reload-button:hover {
   background-color: var(--accent-hover);
+}
+
+.reset-menu-container {
+  position: relative;
+}
+
+.reset-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 0.5rem;
+  background-color: var(--bg-main);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  min-width: 180px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.reset-dropdown button {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.reset-dropdown button:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--accent-color);
+}
+
+.reset-dropdown button.danger {
+  color: #ef4444;
+  border-top: 1px solid var(--border-color);
+}
+
+.reset-dropdown button.danger:hover {
+  background-color: #fef2f2;
+}
+
+.theme-dark .reset-dropdown button.danger:hover {
+  background-color: #450a0a;
+}
+
+.reset-button.menu-open {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+}
+
+.transition-transform {
+  transition: transform 0.2s;
+}
+
+.rotate-180 {
+  transform: rotate(180deg);
 }
 
 .close-button {
