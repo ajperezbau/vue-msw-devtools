@@ -56,7 +56,7 @@ test.describe("MSW DevTools - Presets (Recipes)", () => {
     // 1. Change two handlers
     await devToolsPage.selectScenario("users", "empty");
     // status only has "default" but let's assume it's there
-    const statusRow = await devToolsPage.getHandlerRow("/api/status");
+    const statusRow = await devToolsPage.getHandlerRow("[GET] /api/status");
 
     // 2. Open selection mode
     await devToolsPage.switchTab("Registry");
@@ -96,5 +96,30 @@ test.describe("MSW DevTools - Presets (Recipes)", () => {
       .locator(".preset-scenarios-preview");
     await expect(preview).toContainText("users: empty");
     await expect(preview).not.toContainText("/api/status");
+  });
+
+  test("should render the method badge in the preset preview", async ({
+    page,
+  }) => {
+    // 1. Create a preset
+    const presetName = "Method Badge Test";
+    await devToolsPage.saveCurrentAsPreset(presetName);
+
+    // 2. Go to Presets tab
+    await devToolsPage.switchTab("Presets");
+
+    // 3. Verify the method badge is visible in the preview tags
+    const card = page.locator(".preset-card", { hasText: presetName });
+    await expect(card).toBeVisible();
+
+    const previewTag = card.locator(".preview-tag").first();
+    await expect(previewTag).toBeVisible();
+
+    const methodBadge = previewTag.locator(".method-badge");
+    await expect(methodBadge).toBeVisible();
+
+    // It should contain a valid method like GET or POST
+    const methodText = await methodBadge.innerText();
+    expect(["GET", "POST", "PUT", "PATCH", "DELETE"]).toContain(methodText);
   });
 });

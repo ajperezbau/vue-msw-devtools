@@ -437,7 +437,7 @@
                 </td>
                 <td class="col-info">
                   <div class="handler-info" v-if="scenarioRegistry[key]">
-                    <span class="key-text">{{ key }}</span>
+                    <span class="key-text">{{ displayKey(key) }}</span>
                     <div
                       v-if="scenarioRegistry[key].url !== key"
                       class="url-wrapper"
@@ -765,7 +765,14 @@
                     :key="hKey"
                     class="preview-tag"
                   >
-                    <span class="preview-key">{{ hKey }}:</span>
+                    <span
+                      v-if="scenarioRegistry && scenarioRegistry[hKey]"
+                      class="method-badge mini"
+                      :class="[scenarioRegistry[hKey].method?.toLowerCase()]"
+                    >
+                      {{ scenarioRegistry[hKey].method }}
+                    </span>
+                    <span class="preview-key">{{ displayKey(hKey) }}:</span>
                     {{ scenario }}
                   </span>
                 </div>
@@ -857,7 +864,7 @@
                 </div>
                 <div class="log-scenario-info">
                   <div class="log-key-wrapper">
-                    <span class="log-key">{{ entry.key }}</span>
+                    <span class="log-key">{{ displayKey(entry.key) }}</span>
                     <span
                       v-if="scenarioRegistry[entry.key]?.isNative"
                       class="native-badge mini"
@@ -1770,6 +1777,14 @@ const isModified = (key: string) => {
 
 const isCustomScenario = (key: string, scenario: string) => {
   return !!customScenarios[key]?.[scenario];
+};
+
+const displayKey = (key: string) => {
+  const handler = scenarioRegistry[key];
+  if (handler?.isNative) {
+    return key.replace(/^\[[A-Z]+\]\s+/, "");
+  }
+  return key;
 };
 
 watch(isOpen, (newValue) => {
@@ -3327,6 +3342,13 @@ const filteredActivityLog = computed(() => {
   border-radius: 0.375rem;
   text-transform: uppercase;
   display: inline-block;
+}
+
+.method-badge.mini {
+  padding: 0.125rem 0.125rem;
+  font-size: 0.65rem;
+  border-radius: 0.25rem;
+  margin-right: 0.375rem;
 }
 
 .theme-light .method-badge.get {
