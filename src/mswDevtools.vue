@@ -765,6 +765,13 @@
                     :key="hKey"
                     class="preview-tag"
                   >
+                    <span
+                      v-if="scenarioRegistry && scenarioRegistry[hKey]"
+                      class="method-badge mini"
+                      :class="[scenarioRegistry[hKey].method?.toLowerCase()]"
+                    >
+                      {{ scenarioRegistry[hKey].method }}
+                    </span>
                     <span class="preview-key">{{ displayKey(hKey) }}:</span>
                     {{ scenario }}
                   </span>
@@ -3335,6 +3342,13 @@ const filteredActivityLog = computed(() => {
   border-radius: 0.375rem;
   text-transform: uppercase;
   display: inline-block;
+}
+
+.method-badge.mini {
+  padding: 0.125rem 0.125rem;
+  font-size: 0.65rem;
+  border-radius: 0.25rem;
+  margin-right: 0.375rem;
 }
 
 .theme-light .method-badge.get {
