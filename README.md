@@ -111,7 +111,7 @@ While **Zero Config Discovery** is great for getting started, using `defineHandl
 
 #### Priority Handling
 
-Handled with higher priority will be matched first by MSW. Use the `priority` property in the handler configuration.
+Handlers with higher priority will be matched first by MSW. Use the `priority` property in the handler configuration.
 
 ```typescript
 defineHandlers({
