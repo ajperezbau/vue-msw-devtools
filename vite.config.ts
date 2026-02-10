@@ -14,6 +14,7 @@ export default defineConfig({
       staticImport: true,
       tsconfigPath: "./tsconfig.app.json",
       include: ["src/**/*.ts", "src/**/*.vue"],
+      exclude: ["src/main.ts"],
     }),
   ],
   build: {
