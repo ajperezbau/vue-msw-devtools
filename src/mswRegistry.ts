@@ -375,9 +375,28 @@ export const setupMswRegistry = (
 
     // If no initial handlers provided, we capture everything that we won't be managing
     if (initialHandlers.length === 0) {
-      baseHandlers = existingHandlers.filter(
-        (h: any) => !h.info || !h.info.path,
-      );
+      baseHandlers = existingHandlers.filter((handler: any) => {
+        // If it has __vueDevtoolsConfig, it's explicitly managed by devtools
+        if (handler.__vueDevtoolsConfig) return false;
+
+        // If it doesn't have enough info to be auto-discovered, it belongs to baseHandlers
+        if (
+          !handler.info ||
+          typeof handler.info.path !== "string" ||
+          typeof handler.info.method !== "string"
+        ) {
+          return true;
+        }
+
+        // Only support standard HTTP methods for auto-discovery
+        const methodLower = handler.info.method.toLowerCase();
+        const supportedMethods = ["get", "post", "put", "delete", "patch"];
+        if (!supportedMethods.includes(methodLower)) {
+          return true;
+        }
+
+        return false; // This handler WILL be auto-discovered (or is already managed)
+      });
     } else {
       baseHandlers = initialHandlers;
     }
@@ -517,10 +536,10 @@ watch(globalDelay, (newDelay) => {
 
 /**
  * Define MSW handlers with multiple scenarios for the devtools.
- * 
+ *
  * @param configs - Object mapping handler keys to their configuration
  * @returns Array of MSW HttpHandler instances with attached devtools metadata
- * 
+ *
  * @example
  * ```typescript
  * const handlers = defineHandlers({
@@ -533,15 +552,15 @@ watch(globalDelay, (newDelay) => {
  *     },
  *   },
  * });
- * 
+ *
  * // Pass handlers to MSW worker
  * const worker = setupWorker(...handlers);
  * await worker.start();
- * 
+ *
  * // Then initialize the devtools plugin
  * app.use(MswDevtoolsPlugin, { worker });
  * ```
- * 
+ *
  * @remarks
  * The returned handlers must be passed to setupWorker() and the worker must be
  * provided to MswDevtoolsPlugin for the devtools functionality to work.
@@ -561,10 +580,15 @@ export const defineHandlers = (
   >,
 ): HttpHandler[] => {
   return Object.entries(configs).map(([key, config]) => {
-    const method = (config.method || "get") as "get" | "post" | "put" | "patch" | "delete";
+    const method = (config.method || "get") as
+      | "get"
+      | "post"
+      | "put"
+      | "patch"
+      | "delete";
     const defaultScenario = config.defaultScenario || "default";
     const priority = config.priority || 0;
-    
+
     // Create a basic MSW handler with a placeholder resolver.
     // IMPORTANT: These handlers must be passed to setupWorker() and then
     // setupMswRegistry() must be called to activate the devtools functionality.
@@ -573,7 +597,7 @@ export const defineHandlers = (
     const handler = http[method](config.url, () => {
       return new HttpResponse(null, { status: 200 });
     }) as HttpHandler;
-    
+
     // Attach devtools metadata to the handler for later processing by setupMswRegistry
     handler.__vueDevtoolsConfig = {
       key,
@@ -584,7 +608,7 @@ export const defineHandlers = (
       priority,
       isNative: false,
     };
-    
+
     return handler;
   });
 };
