@@ -513,6 +513,39 @@ watch(globalDelay, (newDelay) => {
   localStorage.setItem(DELAY_KEY, String(newDelay));
 });
 
+/**
+ * Define MSW handlers with multiple scenarios for the devtools.
+ * 
+ * @param configs - Object mapping handler keys to their configuration
+ * @returns Array of MSW HttpHandler instances with attached devtools metadata
+ * 
+ * @example
+ * ```typescript
+ * const handlers = defineHandlers({
+ *   users: {
+ *     url: "/api/users",
+ *     method: "get",
+ *     scenarios: {
+ *       success: () => HttpResponse.json([{ id: 1, name: "John" }]),
+ *       empty: () => HttpResponse.json([]),
+ *     },
+ *   },
+ * });
+ * 
+ * // Pass handlers to MSW worker
+ * const worker = setupWorker(...handlers);
+ * await worker.start();
+ * 
+ * // Then initialize the devtools plugin
+ * app.use(MswDevtoolsPlugin, { worker });
+ * ```
+ * 
+ * @remarks
+ * The returned handlers must be passed to setupWorker() and the worker must be
+ * provided to MswDevtoolsPlugin for the devtools functionality to work.
+ * Until setupMswRegistry() is called (which happens automatically when the plugin
+ * is installed), handlers will return a simple 200 OK response.
+ */
 export const defineHandlers = (
   configs: Record<
     string,
@@ -530,14 +563,16 @@ export const defineHandlers = (
     const defaultScenario = config.defaultScenario || "default";
     const priority = config.priority || 0;
     
-    // Create a basic MSW handler with a simple resolver
-    // The actual scenario resolution will happen in setupMswRegistry
+    // Create a basic MSW handler with a placeholder resolver.
+    // IMPORTANT: These handlers must be passed to setupWorker() and then
+    // setupMswRegistry() must be called to activate the devtools functionality.
+    // Until setupMswRegistry() is called, handlers will return a simple 200 response.
+    // After setupMswRegistry() processes them, they will use the actual scenario resolvers.
     const handler = http[method](config.url, () => {
-      // This will be replaced by the devtools when setupMswRegistry is called
       return new HttpResponse(null, { status: 200 });
     }) as HttpHandler;
     
-    // Attach devtools metadata to the handler
+    // Attach devtools metadata to the handler for later processing by setupMswRegistry
     handler.__vueDevtoolsConfig = {
       key,
       url: config.url,
