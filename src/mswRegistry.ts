@@ -373,11 +373,37 @@ export const setupMswRegistry = (
   if (typeof instance.listHandlers === "function") {
     const existingHandlers = instance.listHandlers();
 
-    // If no initial handlers provided, we capture everything that we won't be managing
+    // If no initial handlers provided, collect handlers we won't auto-manage
     if (initialHandlers.length === 0) {
-      baseHandlers = existingHandlers.filter(
-        (h: any) => !h.info || !h.info.path,
-      );
+      const unmanaged: any[] = [];
+
+      existingHandlers.forEach((handler: any) => {
+        // Handlers with devtools config will be registered, not added to baseHandlers
+        if (handler.__vueDevtoolsConfig) {
+          return;
+        }
+
+        // Handlers without info or with non-string path/method cannot be auto-managed
+        if (
+          !handler.info ||
+          typeof handler.info.path !== "string" ||
+          typeof handler.info.method !== "string"
+        ) {
+          unmanaged.push(handler);
+          return;
+        }
+
+        const { method } = handler.info;
+        const methodLower = method.toLowerCase();
+
+        // Handlers with unsupported methods cannot be auto-managed
+        const supportedMethods = ["get", "post", "put", "delete", "patch"];
+        if (!supportedMethods.includes(methodLower)) {
+          unmanaged.push(handler);
+        }
+      });
+
+      baseHandlers = unmanaged;
     } else {
       baseHandlers = initialHandlers;
     }
@@ -398,7 +424,7 @@ export const setupMswRegistry = (
         return;
       }
 
-      // Small check to avoid internal or already managed handlers
+      // Skip handlers that cannot be auto-managed
       if (
         !handler.info ||
         typeof handler.info.path !== "string" ||
