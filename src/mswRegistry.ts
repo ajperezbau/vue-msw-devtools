@@ -3,8 +3,26 @@ import {
   HttpResponse,
   type DefaultBodyType,
   type HttpResponseResolver,
+  type HttpHandler,
 } from "msw";
 import { reactive, ref, watch } from "vue";
+
+// Type augmentation to add devtools metadata to MSW handlers
+export interface VueDevtoolsConfig {
+  key: string;
+  url: string;
+  method: "get" | "post" | "put" | "delete" | "patch";
+  scenarios: Record<string, HttpResponseResolver>;
+  defaultScenario: string;
+  priority: number;
+  isNative?: boolean;
+}
+
+declare module "msw" {
+  interface HttpHandler {
+    __vueDevtoolsConfig?: VueDevtoolsConfig;
+  }
+}
 
 const STORAGE_KEY = "msw-scenarios";
 const DELAY_KEY = "msw-delay";
@@ -369,6 +387,21 @@ export const setupMswRegistry = (
     }
 
     existingHandlers.forEach((handler: any) => {
+      // Check if this handler has devtools configuration
+      if (handler.__vueDevtoolsConfig) {
+        const config = handler.__vueDevtoolsConfig;
+        registerInternal({
+          key: config.key,
+          url: config.url,
+          method: config.method,
+          scenarios: config.scenarios,
+          defaultScenario: config.defaultScenario,
+          priority: config.priority,
+          isNative: config.isNative,
+        });
+        return;
+      }
+
       // Small check to avoid internal or already managed handlers
       if (!handler.info || !handler.info.path) return;
 
@@ -491,15 +524,30 @@ export const defineHandlers = (
       priority?: number;
     }
   >,
-) => {
+): HttpHandler[] => {
   return Object.entries(configs).map(([key, config]) => {
-    return registerInternal({
+    const method = (config.method || "get") as "get" | "post" | "put" | "patch" | "delete";
+    const defaultScenario = config.defaultScenario || "default";
+    const priority = config.priority || 0;
+    
+    // Create a basic MSW handler with a simple resolver
+    // The actual scenario resolution will happen in setupMswRegistry
+    const handler = http[method](config.url, () => {
+      // This will be replaced by the devtools when setupMswRegistry is called
+      return new HttpResponse(null, { status: 200 });
+    }) as HttpHandler;
+    
+    // Attach devtools metadata to the handler
+    handler.__vueDevtoolsConfig = {
       key,
       url: config.url,
-      method: (config.method || "get") as any,
+      method,
       scenarios: config.scenarios,
-      defaultScenario: config.defaultScenario,
-      priority: config.priority,
-    });
+      defaultScenario,
+      priority,
+      isNative: false,
+    };
+    
+    return handler;
   });
 };
