@@ -864,6 +864,28 @@
                 {{ method }}
               </button>
             </div>
+            <div class="log-search-wrapper">
+              <input
+                v-model="logSearchQuery"
+                type="text"
+                placeholder="Filter logs..."
+                class="log-search-input"
+              />
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="log-search-icon h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
           </div>
 
           <div v-if="logFilterKey" class="log-filter-banner">
@@ -904,34 +926,33 @@
                   :class="[entry.method.toLowerCase()]"
                   >{{ entry.method }}</span
                 >
-                <div class="log-url" :title="entry.url">
-                  {{ entry.url }}
-                </div>
-                <div
-                  v-if="entry.method !== 'GET' && entry.requestBody"
-                  class="log-request-preview"
-                  :title="JSON.stringify(entry.requestBody)"
-                >
-                  {{ formatPreview(entry.requestBody) }}
-                </div>
-                <div class="log-scenario-info">
-                  <div class="log-key-wrapper">
-                    <span class="log-key">{{ displayKey(entry.key) }}</span>
-                    <span
-                      v-if="scenarioRegistry[entry.key]?.isNative"
-                      class="native-badge mini"
-                      title="Native MSW handler"
-                      >Native</span
-                    >
-                    <button
-                      type="button"
-                      @click.stop="viewHandlerForKey(entry.key)"
-                      class="mini-icon-button"
-                      title="View in Registry"
-                    >
+                <div class="log-content-wrapper">
+                  <div class="log-top-row">
+                    <div class="log-url" :title="entry.url">
+                      <span class="url-domain">{{
+                        formatUrlDisplay(entry.url).domain
+                      }}</span>
+                      <span class="url-path">{{
+                        formatUrlDisplay(entry.url).path
+                      }}</span>
+                    </div>
+                    <div class="log-top-right">
+                      <div
+                        v-if="entry.method !== 'GET' && entry.requestBody"
+                        class="log-request-preview"
+                        :title="JSON.stringify(entry.requestBody)"
+                      >
+                        {{ formatPreview(entry.requestBody) }}
+                      </div>
+                      <span
+                        class="status-badge"
+                        :class="{ 'status-error': entry.status >= 400 }"
+                      >
+                        {{ entry.status }}
+                      </span>
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
-                        class="h-3 w-3"
+                        class="expand-icon h-4 w-4"
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -940,38 +961,55 @@
                           stroke-linecap="round"
                           stroke-linejoin="round"
                           stroke-width="2"
-                          d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          d="M19 9l-7 7-7-7"
                         />
                       </svg>
-                    </button>
+                    </div>
                   </div>
-                  <span class="log-scenario">
-                    {{ entry.scenario
-                    }}{{
-                      isCustomScenario(entry.key, entry.scenario) ? " ✨" : ""
-                    }}
-                  </span>
+                  <div class="log-bottom-row">
+                    <div class="log-handler-info">
+                      <span class="log-key">{{ displayKey(entry.key) }}</span>
+                      <span
+                        v-if="scenarioRegistry[entry.key]?.isNative"
+                        class="native-badge mini"
+                        title="Native MSW handler"
+                        >Native</span
+                      >
+                    </div>
+                    <div class="log-bottom-right">
+                      <span class="log-scenario">
+                        <span class="log-scenario-label">Scenario:</span>
+                        {{ entry.scenario
+                        }}{{
+                          isCustomScenario(entry.key, entry.scenario)
+                            ? " ✨"
+                            : ""
+                        }}
+                      </span>
+                      <button
+                        type="button"
+                        @click.stop="viewHandlerForKey(entry.key)"
+                        class="mini-icon-button"
+                        title="View in Registry"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          class="h-3 w-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <span
-                  class="status-badge"
-                  :class="{ 'status-error': entry.status >= 400 }"
-                >
-                  {{ entry.status }}
-                </span>
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="expand-icon h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M19 9l-7 7-7-7"
-                  />
-                </svg>
               </div>
               <div v-if="expandedLogId === entry.id" class="log-details">
                 <div
@@ -1310,6 +1348,7 @@ const showOnlyModified = ref(
 const searchInput = ref<HTMLInputElement | null>(null);
 const expandedLogId = ref<string | null>(null);
 const logFilterKey = ref<string | null>(null);
+const logSearchQuery = ref("");
 const selectedMethods = ref<Set<string>>(new Set(["ALL"]));
 const logSearchPath = ref("");
 
@@ -1324,15 +1363,6 @@ const PRESET_KEY_PREFIX_GLOBAL = 'global:';
 // Helper to create unique preset key
 const getPresetKey = (name: string, isCustom: boolean) => {
   return isCustom ? `${PRESET_KEY_PREFIX_CUSTOM}${name}` : `${PRESET_KEY_PREFIX_GLOBAL}${name}`;
-};
-
-// Helper to parse preset key back to name and type
-// Currently unused but provided for future extensibility if needed
-const parsePresetKey = (key: string) => {
-  if (key.startsWith(PRESET_KEY_PREFIX_CUSTOM)) {
-    return { name: key.slice(PRESET_KEY_PREFIX_CUSTOM.length), isCustom: true };
-  }
-  return { name: key.startsWith(PRESET_KEY_PREFIX_GLOBAL) ? key.slice(PRESET_KEY_PREFIX_GLOBAL.length) : key, isCustom: false };
 };
 
 const allPresets = computed(() => {
@@ -1917,14 +1947,36 @@ const filteredRegistryKeys = computed(() => {
 });
 
 const filteredActivityLog = computed(() => {
+  const query = logSearchQuery.value.toLowerCase();
   return activityLog.filter((entry) => {
     const matchesKey = !logFilterKey.value || entry.key === logFilterKey.value;
     const matchesMethod =
       selectedMethods.value.has("ALL") ||
       selectedMethods.value.has(entry.method);
-    return matchesKey && matchesMethod;
+
+    if (!matchesKey || !matchesMethod) return false;
+
+    if (!query) return true;
+
+    return (
+      entry.url.toLowerCase().includes(query) ||
+      entry.key.toLowerCase().includes(query) ||
+      entry.method.toLowerCase().includes(query) ||
+      entry.status.toString().includes(query)
+    );
   });
 });
+
+const formatUrlDisplay = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    const domain = urlObj.origin;
+    const path = urlObj.pathname + urlObj.search + urlObj.hash;
+    return { domain, path };
+  } catch (e) {
+    return { domain: "", path: url };
+  }
+};
 </script>
 
 <style scoped>
@@ -2510,6 +2562,38 @@ const filteredActivityLog = computed(() => {
   position: sticky;
   top: 0;
   z-index: 10;
+  gap: 1.5rem;
+}
+
+.log-search-wrapper {
+  position: relative;
+  flex: 1;
+  max-width: 400px;
+  display: flex;
+  align-items: center;
+}
+
+.log-search-input {
+  width: 100%;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 0.5rem;
+  padding: 0.375rem 0.75rem 0.375rem 2.25rem;
+  font-size: 0.875rem;
+  color: var(--text-main);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.log-search-input:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.log-search-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--text-tertiary);
 }
 
 .log-filters {
@@ -2630,20 +2714,21 @@ const filteredActivityLog = computed(() => {
 
 .log-entry.is-error {
   border-left: 4px solid #ef4444;
+  background-color: rgba(239, 68, 68, 0.05);
+}
+
+.theme-dark .log-entry.is-error {
+  background-color: rgba(239, 68, 68, 0.1);
 }
 
 .log-entry-header {
   padding: 0.75rem 1rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   cursor: pointer;
   user-select: none;
   transition: background-color 0.1s;
-}
-
-.log-entry-header:hover {
-  background-color: var(--table-hover);
 }
 
 .log-time {
@@ -2651,16 +2736,141 @@ const filteredActivityLog = computed(() => {
   font-size: 0.75rem;
   color: var(--text-tertiary);
   width: 80px;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.method-badge {
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.25rem 0;
+  border-radius: 0.375rem;
+  text-transform: uppercase;
+  display: inline-block;
+  width: 48px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.log-entry-header:hover {
+  background-color: var(--table-hover);
+}
+
+.log-content-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.log-top-row,
+.log-bottom-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+}
+
+.log-top-right,
+.log-bottom-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
 }
 
 .log-url {
-  flex: 1;
   font-family: "JetBrains Mono", "Fira Code", monospace;
   font-size: 0.8125rem;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 1;
+  display: flex;
+}
+
+.url-domain {
+  color: var(--text-tertiary);
+  opacity: 0.7;
+}
+
+.url-path {
+  font-weight: 500;
+  color: var(--text-main);
+}
+
+.log-key {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  opacity: 0.8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
+}
+
+.log-handler-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.log-scenario {
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+
+.mini-icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.125rem;
+  border-radius: 0.25rem;
+  background-color: transparent;
+  color: var(--text-tertiary);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  opacity: 0;
+}
+
+.log-entry:hover .log-scenario {
+  opacity: 1;
+}
+
+.log-entry:hover .mini-icon-button {
+  opacity: 1;
+  color: var(--text-secondary);
+  border-color: var(--border-color);
+  background-color: var(--bg-tertiary);
+}
+
+.log-key {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
+}
+
+.log-separator {
+  color: var(--border-color);
+  font-size: 0.625rem;
+}
+
+.log-scenario-label {
+  color: var(--text-tertiary);
+  margin-right: 0.25rem;
+  font-weight: 500;
 }
 
 .log-request-preview {
@@ -2670,18 +2880,11 @@ const filteredActivityLog = computed(() => {
   background-color: var(--bg-tertiary);
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
-  max-width: 250px;
+  max-width: 400px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin: 0 1rem;
   border: 1px solid var(--border-color);
-}
-
-.log-scenario-info {
-  display: flex;
-  flex-direction: column;
-  width: 200px;
 }
 
 .log-key-wrapper {
@@ -3418,15 +3621,6 @@ const filteredActivityLog = computed(() => {
   border-radius: 9999px;
   display: inline-block;
   flex-shrink: 0;
-}
-
-.method-badge {
-  font-size: 0.75rem;
-  font-weight: 800;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  text-transform: uppercase;
-  display: inline-block;
 }
 
 .method-badge.mini {
