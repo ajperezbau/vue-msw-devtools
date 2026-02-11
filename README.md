@@ -198,3 +198,13 @@ Once installed, a floating gear icon will appear in your application.
 
 - `Ctrl + Shift + M`: Toggle Devtools panel.
 - `Ctrl + Enter`: Apply changes and reload page (when panel is open).
+
+## Development
+
+This project uses `pnpm` as its package manager. Please ensure you have it installed before contributing.
+
+```bash
+pnpm install
+pnpm dev
+pnpm test
+```
