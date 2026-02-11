@@ -870,6 +870,7 @@
                 type="text"
                 placeholder="Filter logs..."
                 class="log-search-input"
+                aria-label="Filter logs"
               />
               <svg
                 xmlns="http://www.w3.org/2000/svg"
