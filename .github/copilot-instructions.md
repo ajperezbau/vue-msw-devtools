@@ -2,8 +2,9 @@
 
 ## Terminal & Commands
 
+- **Package Manager:** Always use `pnpm` for all package management tasks (installing, adding, removing, or running scripts). Never use `npm` or `yarn`.
 - When running Playwright tests, always use the `--reporter=line` or `--reporter=list` flag to prevent the reporter from hanging the terminal with an interactive HTML report on failure.
-- Example: `npx playwright test --reporter=line`
+- Example: `pnpm playwright test --reporter=line`
 - Do not use commands that require user intervention to terminate unless specifically requested.
 
 ## Testing Guidelines

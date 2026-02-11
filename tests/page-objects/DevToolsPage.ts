@@ -30,10 +30,10 @@ export class DevToolsPage {
       "Global delay in milliseconds",
     );
     this.exportButton = this.dialog.getByRole("button", {
-      name: /Export/i,
+      name: "Export Scenarios",
     });
     this.importButton = this.dialog.getByRole("button", {
-      name: /Import/i,
+      name: "Import Scenarios",
     });
     this.fetchUsersButton = page.getByRole("button", { name: /Fetch Users/ });
     this.fetchProductsButton = page.getByRole("button", {
@@ -56,9 +56,11 @@ export class DevToolsPage {
 
   async applyPreset(name: string) {
     await this.switchTab("Presets");
+    // Select the preset from the list first
+    await this.dialog.locator(".presets-list-item", { hasText: name }).click();
+    // Then click Apply in the detail panel
     await this.dialog
-      .locator(".preset-card")
-      .filter({ hasText: name })
+      .locator(".presets-detail")
       .getByRole("button", { name: "Apply Preset" })
       .click();
   }
