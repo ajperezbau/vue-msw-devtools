@@ -222,266 +222,16 @@
           </div>
         </div>
 
-        <div class="search-container" v-if="activeTab === 'registry'">
-          <div class="search-wrapper">
-            <input
-              ref="searchInput"
-              v-model="searchQuery"
-              type="text"
-              placeholder="Filter by key, URL or method..."
-              class="search-input"
-            />
-            <button
-              v-if="searchQuery"
-              type="button"
-              @click="searchQuery = ''"
-              class="clear-search-button"
-              title="Clear search"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          <div class="modified-filter">
-            <MswCheckbox v-model="showOnlyModified">
-              Modified only
-            </MswCheckbox>
-          </div>
-          <div class="global-delay-control">
-            <label for="global-delay">Global Delay:</label>
-            <div class="global-delay-inputs">
-              <input
-                id="global-delay"
-                type="range"
-                v-model.number="globalDelay"
-                min="0"
-                max="5000"
-                step="100"
-                class="delay-slider"
-              />
-              <div class="global-delay-number-wrapper">
-                <input
-                  type="number"
-                  v-model.number="globalDelay"
-                  min="0"
-                  max="10000"
-                  step="50"
-                  placeholder="0"
-                  class="handler-delay-input"
-                  aria-label="Global delay in milliseconds"
-                />
-                <span class="ms-label">ms</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div
-          v-if="activeTab === 'registry' && isSelectionMode"
-          class="selection-toolbar"
-        >
-          <div class="selection-info">
-            <span class="selection-count"
-              >{{ selectedKeys.size }} handlers selected</span
-            >
-            <button @click="selectAllVisible" class="text-button">
-              Select Visible
-            </button>
-            <button @click="clearSelection" class="text-button">Clear</button>
-          </div>
-          <div class="selection-actions">
-            <input
-              v-model="newPresetName"
-              placeholder="Preset name..."
-              class="toolbar-input"
-              @keyup.enter="saveCurrentAsPreset"
-            />
-            <button
-              @click="saveCurrentAsPreset"
-              :disabled="!newPresetName || selectedKeys.size === 0"
-              class="toolbar-save-button"
-            >
-              Save Selected
-            </button>
-          </div>
-        </div>
-
-        <div class="registry-container" v-if="activeTab === 'registry'">
-          <table class="registry-table">
-            <thead>
-              <tr>
-                <th v-if="isSelectionMode" class="col-selection">
-                  <MswCheckbox v-model="isAllSelected" />
-                </th>
-                <th class="col-status"></th>
-                <th class="col-method">Method</th>
-                <th class="col-info">Handler</th>
-                <th class="col-scenario">Active Scenario</th>
-                <th class="col-delay">Delay (ms)</th>
-                <th class="col-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-if="filteredRegistryKeys.length === 0">
-                <td colspan="6" class="empty-state">
-                  No handlers found matching your search.
-                </td>
-              </tr>
-              <tr
-                v-for="key in filteredRegistryKeys"
-                :key="key"
-                :class="{
-                  'is-modified': isModified(key),
-                  'is-selected': isSelectionMode && selectedKeys.has(key),
-                }"
-                @click="isSelectionMode ? toggleKeySelection(key) : null"
-              >
-                <td v-if="isSelectionMode" class="col-selection">
-                  <MswCheckbox
-                    :modelValue="selectedKeys.has(key)"
-                    @update:modelValue="toggleKeySelection(key)"
-                    @click.stop
-                  />
-                </td>
-                <td class="col-status">
-                  <div class="status-indicators">
-                    <span
-                      v-if="scenarioRegistry[key]?.isNative"
-                      class="native-indicator"
-                      title="Native MSW handler (originally in setupWorker)"
-                    >
-                      N
-                    </span>
-                    <span
-                      v-if="customOverrides[key]?.enabled"
-                      class="override-indicator"
-                      title="Manual override active"
-                    >
-                      M
-                    </span>
-                    <span
-                      v-else-if="isModified(key)"
-                      class="modified-indicator"
-                      title="Scenario modified"
-                    ></span>
-                  </div>
-                </td>
-                <td class="col-method">
-                  <span
-                    v-if="scenarioRegistry[key]"
-                    class="method-badge"
-                    :class="[scenarioRegistry[key].method.toLowerCase()]"
-                  >
-                    {{ scenarioRegistry[key].method }}
-                  </span>
-                </td>
-                <td class="col-info">
-                  <div class="handler-info" v-if="scenarioRegistry[key]">
-                    <span class="key-text">{{ displayKey(key) }}</span>
-                    <div
-                      v-if="scenarioRegistry[key].url !== key"
-                      class="url-wrapper"
-                      :title="scenarioRegistry[key].url"
-                    >
-                      {{ scenarioRegistry[key].url }}
-                    </div>
-                  </div>
-                </td>
-                <td class="col-scenario">
-                  <select
-                    v-model="scenarioState[key]"
-                    class="scenario-select"
-                    :class="{ 'is-modified': isModified(key) }"
-                    @click.stop
-                  >
-                    <option
-                      v-for="scenario in scenarioRegistry[key]?.scenarios"
-                      :key="scenario"
-                      :value="scenario"
-                    >
-                      {{ scenario
-                      }}{{ isCustomScenario(key, scenario) ? " ✨" : "" }}
-                    </option>
-                  </select>
-                </td>
-                <td class="col-delay">
-                  <div class="handler-delay-wrapper">
-                    <input
-                      type="number"
-                      v-model.number="handlerDelays[key]"
-                      min="0"
-                      max="10000"
-                      step="50"
-                      placeholder="0"
-                      class="handler-delay-input"
-                      @click.stop
-                    />
-                    <span class="ms-label">ms</span>
-                  </div>
-                </td>
-                <td class="col-actions">
-                  <div class="action-buttons">
-                    <button
-                      type="button"
-                      @click.stop="openOverrideEditor(key)"
-                      class="icon-button"
-                      :class="{ 'has-override': customOverrides[key]?.enabled }"
-                      title="Custom response override"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                        />
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      @click.stop="viewLogForKey(key)"
-                      class="icon-button"
-                      title="View logs for this handler"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        class="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          stroke-width="2"
-                          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <RegistryView
+          v-if="activeTab === 'registry'"
+          ref="registryView"
+          v-model:searchQuery="searchQuery"
+          v-model:showOnlyModified="showOnlyModified"
+          :isSelectionMode="isSelectionMode"
+          @openOverrideEditor="openOverrideEditor"
+          @viewLogs="viewLogForKey"
+          @savePreset="handleSavePreset"
+        />
 
         <!-- Export Options Dialog -->
         <div v-if="showExportDialog" class="override-editor-overlay">
@@ -686,6 +436,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MswCheckbox from "./components/MswCheckbox.vue";
 import PresetsView from "./components/views/PresetsView.vue";
 import ActivityLogView from "./components/views/ActivityLogView.vue";
+import RegistryView from "./components/views/RegistryView.vue";
 import MswLogoIcon from "./assets/icons/MswLogoIcon.vue";
 import MoonIcon from "./assets/icons/MoonIcon.vue";
 import SunIcon from "./assets/icons/SunIcon.vue";
@@ -719,40 +470,6 @@ const toggleSelectionMode = () => {
   if (!isSelectionMode.value) {
     selectedKeys.value.clear();
   }
-};
-
-const isAllSelected = computed({
-  get: () => {
-    if (filteredRegistryKeys.value.length === 0) return false;
-    return filteredRegistryKeys.value.every((key) =>
-      selectedKeys.value.has(key),
-    );
-  },
-  set: (val) => {
-    if (val) {
-      filteredRegistryKeys.value.forEach((key) => selectedKeys.value.add(key));
-    } else {
-      filteredRegistryKeys.value.forEach((key) =>
-        selectedKeys.value.delete(key),
-      );
-    }
-  },
-});
-
-const toggleKeySelection = (key: string) => {
-  if (selectedKeys.value.has(key)) {
-    selectedKeys.value.delete(key);
-  } else {
-    selectedKeys.value.add(key);
-  }
-};
-
-const selectAllVisible = () => {
-  filteredRegistryKeys.value.forEach((key) => selectedKeys.value.add(key));
-};
-
-const clearSelection = () => {
-  selectedKeys.value.clear();
 };
 
 const showExportDialog = ref(false);
@@ -879,31 +596,19 @@ const toggleDevtools = () => {
 const showOnlyModified = ref(
   localStorage.getItem("msw-show-only-modified") === "true",
 );
-const searchInput = ref<HTMLInputElement | null>(null);
+const registryView = ref<InstanceType<typeof RegistryView> | null>(null);
 const logFilterKey = ref<string | null>(null);
 
-const newPresetName = ref("");
-
-const saveCurrentAsPreset = () => {
-  if (!newPresetName.value.trim()) return;
-
+const handleSavePreset = (name: string, keys: Set<string>) => {
   const scenarios: Record<string, string> = {};
-
-  let keysToInclude: string[];
-  if (isSelectionMode.value && selectedKeys.value.size > 0) {
-    keysToInclude = Array.from(selectedKeys.value);
-  } else {
-    keysToInclude = Object.keys(scenarioRegistry);
-  }
-
-  keysToInclude.forEach((key) => {
+  
+  Array.from(keys).forEach((key) => {
     const val = scenarioState[key];
     if (val) {
       scenarios[key] = val;
     }
   });
 
-  const name = newPresetName.value.trim();
   const existingIndex = customPresets.findIndex((p) => p.name === name);
 
   if (existingIndex !== -1) {
@@ -916,13 +621,6 @@ const saveCurrentAsPreset = () => {
       name,
       scenarios,
     });
-  }
-
-  newPresetName.value = "";
-
-  if (isSelectionMode.value) {
-    isSelectionMode.value = false;
-    selectedKeys.value.clear();
   }
 
   activeTab.value = "presets";
@@ -1097,7 +795,7 @@ onUnmounted(() => {
 
 const focusSearch = async () => {
   await nextTick();
-  searchInput.value?.focus();
+  registryView.value?.focusSearch();
 };
 
 const showResetMenu = ref(false);
@@ -1282,28 +980,6 @@ const handleImport = (event: Event) => {
   reader.readAsText(file);
 };
 
-const isModified = (key: string) => {
-  const handler = scenarioRegistry[key];
-  const defaultScenario = handler?.isNative ? "original" : "default";
-
-  const scenarioModified =
-    scenarioState[key] && scenarioState[key] !== defaultScenario;
-  const delayModified = (handlerDelays[key] || 0) > 0;
-  const hasOverride = customOverrides[key]?.enabled;
-  return scenarioModified || delayModified || hasOverride;
-};
-
-const isCustomScenario = (key: string, scenario: string) => {
-  return !!customScenarios[key]?.[scenario];
-};
-
-const displayKey = (key: string) => {
-  const handler = scenarioRegistry[key];
-  if (handler?.isNative) {
-    return key.replace(/^\[[A-Z]+\]\s+/, "");
-  }
-  return key;
-};
 
 watch(isOpen, (newValue) => {
   if (newValue) {
@@ -1317,26 +993,6 @@ watch(searchQuery, (newFilter) => {
 
 watch(showOnlyModified, (newValue) => {
   localStorage.setItem("msw-show-only-modified", String(newValue));
-});
-
-const filteredRegistryKeys = computed(() => {
-  const query = searchQuery.value.toLowerCase();
-  return Object.keys(scenarioRegistry).filter((key) => {
-    const metadata = scenarioRegistry[key];
-    if (!metadata) return false;
-
-    // Filter by modified status if enabled
-    if (showOnlyModified.value && !isModified(key)) {
-      return false;
-    }
-
-    // Filter by search query
-    return (
-      key.toLowerCase().includes(query) ||
-      metadata.url.toLowerCase().includes(query) ||
-      metadata.method.toLowerCase().includes(query)
-    );
-  });
 });
 </script>
 
