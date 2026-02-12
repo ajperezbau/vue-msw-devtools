@@ -156,7 +156,7 @@ const selectedPresetName = ref<string | null>(null);
 const allPresets = computed<Preset[]>(() => {
   return [
     ...presets.map((p) => ({ ...p, isCustom: false, key: getPresetKey(p.name, false) })),
-    ...customPresets.value.map((p) => ({ ...p, isCustom: true, key: getPresetKey(p.name, true) })),
+    ...customPresets.map((p) => ({ ...p, isCustom: true, key: getPresetKey(p.name, true) })),
   ];
 });
 
@@ -181,9 +181,9 @@ const handleApplyPreset = (name: string) => {
 };
 
 const handleDeletePreset = (name: string) => {
-  const idx = customPresets.value.findIndex((p) => p.name === name);
+  const idx = customPresets.findIndex((p) => p.name === name);
   if (idx > -1) {
-    customPresets.value.splice(idx, 1);
+    customPresets.splice(idx, 1);
     if (selectedPresetName.value === getPresetKey(name, true)) {
       selectedPresetName.value = null;
     }
