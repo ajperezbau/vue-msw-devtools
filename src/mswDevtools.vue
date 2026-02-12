@@ -18,23 +18,7 @@
       aria-label="Toggle MSW DevTools"
       :class="{ 'is-dragging': isDragging }"
     >
-      <svg
-        class="msw-logo-svg"
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 128 128"
-      >
-        <g fill="none" fill-rule="nonzero">
-          <rect width="128" height="128" fill="#000" rx="24"></rect>
-          <path
-            fill="#7A1818"
-            d="M25.52 45.538a19.62 19.62 0 0 1 7.165-13.23 19.62 19.62 0 0 1 14.423-4.289 19.66 19.66 0 0 1 12.574 6.399l33.9 37.648a19.62 19.62 0 0 1 5.022 14.184 19.62 19.62 0 0 1-6.478 13.58 19.66 19.66 0 0 1-13.174 5.05L33 104.832a12.3 12.3 0 0 1-8.705-3.615 12.3 12.3 0 0 1-3.598-8.712v-.46zm18.508.746c-.346.28-.558.665-.605 1.113l-4.09 39.442 39.637.04c.36 0 .708-.115.993-.328l.119-.097c.337-.304.523-.701.547-1.146.023-.445-.12-.86-.424-1.197l-33.9-37.649a1.66 1.66 0 0 0-1.06-.54 1.63 1.63 0 0 0-1.217.362"
-          ></path>
-          <path
-            fill="#FF6A33"
-            d="m32.53 23.103 62.47.065a12.3 12.3 0 0 1 8.705 3.616 12.3 12.3 0 0 1 3.598 8.711v.461l-.048.459-6.484 62.477a12.3 12.3 0 0 1-4.49 8.287 12.315 12.315 0 0 1-16.912-1.322L23.367 43.66a12.3 12.3 0 0 1-3.146-8.885 12.315 12.315 0 0 1 12.31-11.67m12.767 18.012 38.89 43.192 4.478-43.147z"
-          ></path>
-        </g>
-      </svg>
+      <MswLogoIcon />
     </button>
 
     <div v-if="isOpen" class="modal-backdrop" @click.self="isOpen = false">
@@ -84,40 +68,8 @@
                   : 'Switch to Light Mode'
               "
             >
-              <svg
-                v-if="theme === 'light'"
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-              </svg>
-              <svg
-                v-else
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2" />
-                <path d="M12 20v2" />
-                <path d="m4.93 4.93 1.41 1.41" />
-                <path d="m17.66 17.66 1.41 1.41" />
-                <path d="M2 12h2" />
-                <path d="M20 12h2" />
-                <path d="m6.34 17.66-1.41 1.41" />
-                <path d="m19.07 4.93-1.41 1.41" />
-              </svg>
+              <MoonIcon v-if="theme === 'light'" class="h-5 w-5" />
+              <SunIcon v-else class="h-5 w-5" />
             </button>
             <div class="button-group">
               <button
@@ -993,6 +945,9 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MswCheckbox from "./components/MswCheckbox.vue";
 import PresetsView from "./components/views/PresetsView.vue";
+import MswLogoIcon from "./assets/icons/MswLogoIcon.vue";
+import MoonIcon from "./assets/icons/MoonIcon.vue";
+import SunIcon from "./assets/icons/SunIcon.vue";
 import {
   activityLog,
   clearActivityLog,
