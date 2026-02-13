@@ -136,6 +136,14 @@ export interface Preset {
 
 export const presets = reactive<Preset[]>([]);
 
+export const displayKey = (key: string) => {
+  const parts = key.split(" ");
+  if (parts.length > 1) {
+    return parts.slice(1).join(" ");
+  }
+  return key;
+};
+
 interface RegisteredHandler {
   key: string;
   factory: (resolver: (url: string) => string) => any;
