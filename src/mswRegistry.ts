@@ -6,17 +6,14 @@ import {
   type HttpHandler,
 } from "msw";
 import { reactive, ref, watch } from "vue";
-
-// Type augmentation to add devtools metadata to MSW handlers
-export interface VueDevtoolsConfig {
-  key: string;
-  url: string;
-  method: "get" | "post" | "put" | "delete" | "patch";
-  scenarios: Record<string, HttpResponseResolver>;
-  defaultScenario: string;
-  priority: number;
-  isNative?: boolean;
-}
+import type {
+  VueDevtoolsConfig,
+  CustomOverride,
+  CustomScenario,
+  HandlerMetadata,
+  LogEntry,
+  Preset,
+} from "./types";
 
 declare module "msw" {
   interface HttpHandler {
@@ -49,12 +46,6 @@ const getPersistedHandlerDelays = (): Record<string, number> => {
   }
 };
 
-interface CustomOverride {
-  body: string;
-  status: number;
-  enabled: boolean;
-}
-
 const getPersistedOverrides = (): Record<string, CustomOverride> => {
   try {
     const stored = localStorage.getItem(OVERRIDES_KEY);
@@ -63,11 +54,6 @@ const getPersistedOverrides = (): Record<string, CustomOverride> => {
     return {};
   }
 };
-
-interface CustomScenario {
-  body: string;
-  status: number;
-}
 
 const getPersistedCustomScenarios = (): Record<
   string,
@@ -105,36 +91,17 @@ export const customScenarios = reactive<
 export const customPresets = reactive<Preset[]>(getPersistedCustomPresets());
 export const globalDelay = ref(Number(localStorage.getItem(DELAY_KEY)) || 0);
 
-interface HandlerMetadata {
-  url: string;
-  method: string;
-  scenarios: string[];
-  originalScenarios: string[];
-  isNative?: boolean;
-}
-
-export interface LogEntry {
-  id: string;
-  timestamp: number;
-  key: string;
-  scenario: string;
-  method: string;
-  url: string;
-  status: number;
-  responseBody?: unknown;
-  requestBody?: unknown;
-}
-
 export const scenarioRegistry = reactive<Record<string, HandlerMetadata>>({});
 export const activityLog = reactive<LogEntry[]>([]);
-
-export interface Preset {
-  name: string;
-  description?: string;
-  scenarios: Record<string, string>;
-}
-
 export const presets = reactive<Preset[]>([]);
+
+export const displayKey = (key: string) => {
+  const parts = key.split(" ");
+  if (parts.length > 1) {
+    return parts.slice(1).join(" ");
+  }
+  return key;
+};
 
 interface RegisteredHandler {
   key: string;
