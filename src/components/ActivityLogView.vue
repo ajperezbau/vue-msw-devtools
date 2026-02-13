@@ -72,7 +72,7 @@
         >
           <div class="list-item-row top">
             <MswBadge variant="method" :label="entry.method" />
-            <span class="list-url" :title="entry.url">{{ entry.url }}</span>
+            <span class="list-url" :title="entry.key">{{ displayKey(entry.key) }}</span>
             <span class="list-time">{{ formatTime(entry.timestamp) }}</span>
           </div>
           <div class="list-item-row bottom">
@@ -123,7 +123,7 @@
       <template v-else>
         <div class="details-header">
           <div class="header-top">
-            <h2 class="header-title">{{ selectedLog.url }}</h2>
+            <h2 class="header-title">{{ displayKey(selectedLog.key) }}</h2>
             <span
               class="status-pill"
               :class="{
@@ -174,7 +174,7 @@
               </div>
               <div class="info-card full-width">
                 <label>Handler Key</label>
-                <div class="info-value code">{{ selectedLog.key }}</div>
+                <div class="info-value code">{{ displayKey(selectedLog.key) }}</div>
                  <button class="link-btn" @click="emit('view-handler', selectedLog.key)">
                     View in Registry →
                  </button>
@@ -215,6 +215,7 @@ import {
   clearActivityLog,
   scenarioRegistry,
   customScenarios,
+  displayKey,
 } from "../mswRegistry";
 import type { LogEntry } from "../types";
 

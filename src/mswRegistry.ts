@@ -96,11 +96,8 @@ export const activityLog = reactive<LogEntry[]>([]);
 export const presets = reactive<Preset[]>([]);
 
 export const displayKey = (key: string) => {
-  const parts = key.split(" ");
-  if (parts.length > 1) {
-    return parts.slice(1).join(" ");
-  }
-  return key;
+  // Strip [METHOD] prefix from native handlers
+  return key.replace(/^\[[A-Z]+\]\s+/, "");
 };
 
 interface RegisteredHandler {
