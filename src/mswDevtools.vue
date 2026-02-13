@@ -341,85 +341,12 @@
         </div>
       </div>
 
-      <div v-if="editingOverrideKey" class="override-editor-overlay">
-        <div class="override-editor-content">
-          <div class="editor-header">
-            <h3>Override Response: {{ editingOverrideKey }}</h3>
-            <button
-              type="button"
-              @click="editingOverrideKey = null"
-              class="close-button"
-            >
-              &times;
-            </button>
-          </div>
-          <div class="editor-body">
-            <div class="input-group">
-              <label>Scenario Name (Optional)</label>
-              <div class="input-subtitle">
-                If provided, this will be saved as a reusable scenario and
-                automatically selected.
-              </div>
-              <input
-                type="text"
-                v-model="overrideForm.scenarioName"
-                class="scenario-name-input"
-                placeholder="e.g. Empty Results, Error Page..."
-              />
-            </div>
-            <div class="input-group">
-              <label>HTTP Status</label>
-              <input
-                type="number"
-                v-model.number="overrideForm.status"
-                class="status-input"
-              />
-            </div>
-            <div class="input-group">
-              <div class="label-with-action">
-                <label>Response Body (JSON or Text)</label>
-                <button
-                  type="button"
-                  @click="formatEditorJson"
-                  class="format-button"
-                >
-                  Format JSON
-                </button>
-              </div>
-              <textarea
-                v-model="overrideForm.body"
-                class="body-textarea"
-                placeholder='{"key": "value"}'
-              ></textarea>
-            </div>
-          </div>
-          <div class="editor-footer">
-            <button
-              type="button"
-              @click="clearOverride"
-              class="secondary-button"
-              v-if="editingOverrideKey"
-            >
-              Clear Current Override
-            </button>
-            <div class="spacer"></div>
-            <button
-              type="button"
-              @click="editingOverrideKey = null"
-              class="secondary-button"
-            >
-              Cancel
-            </button>
-            <button type="button" @click="saveOverride" class="primary-button">
-              {{
-                overrideForm.scenarioName
-                  ? "Save as Scenario"
-                  : "Save & Enable Override"
-              }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <OverrideEditor
+        v-if="editingOverrideKey"
+        :editing-key="editingOverrideKey"
+        :initial-data="initialOverrideData"
+        @close="editingOverrideKey = null"
+      />
 
       <PresetsView v-if="activeTab === 'presets'" />
 
@@ -440,6 +367,7 @@ import MswToggle from "./components/MswToggle.vue";
 import RegistryView from "./components/RegistryView.vue";
 import PresetsView from "./components/PresetsView.vue";
 import ActivityLogView from "./components/ActivityLogView.vue";
+import OverrideEditor from "./components/OverrideEditor.vue";
 import {
   activityLog,
   clearActivityLog,
@@ -489,88 +417,19 @@ const toggleTheme = () => {
 const logFilterKey = ref<string | null>(null);
 
 const editingOverrideKey = ref<string | null>(null);
-const overrideForm = ref({
-  body: "",
-  status: 200,
-  enabled: true,
-  scenarioName: "",
-});
+const initialOverrideData = ref<{ body: string; status: number } | null>(null);
 
 const openOverrideEditor = (key: string) => {
+  initialOverrideData.value = null; // Clear previous log data if any
   editingOverrideKey.value = key;
-  const existing = customOverrides[key];
-  overrideForm.value = {
-    body: existing?.body ?? "",
-    status: existing?.status ?? 200,
-    enabled: true,
-    scenarioName: "",
-  };
 };
 
 const openOverrideEditorFromLog = (entry: LogEntry) => {
-  editingOverrideKey.value = entry.key;
-  overrideForm.value = {
+  initialOverrideData.value = {
     body: formatBody(entry.responseBody),
     status: entry.status,
-    enabled: true,
-    scenarioName: "",
   };
-};
-
-const saveOverride = () => {
-  if (editingOverrideKey.value) {
-    const key = editingOverrideKey.value;
-    const { scenarioName, ...formData } = overrideForm.value;
-
-    if (scenarioName.trim()) {
-      // Save as reusable scenario
-      if (!customScenarios[key]) {
-        customScenarios[key] = {};
-      }
-
-      customScenarios[key][scenarioName] = {
-        body: formData.body,
-        status: formData.status,
-      };
-
-      // Update registry information
-      if (
-        scenarioRegistry[key] &&
-        !scenarioRegistry[key].scenarios.includes(scenarioName)
-      ) {
-        scenarioRegistry[key].scenarios.push(scenarioName);
-      }
-
-      // Automatically select the new scenario and remove any existing manual override
-      scenarioState[key] = scenarioName;
-      delete customOverrides[key];
-    } else {
-      // Regular manual override
-      customOverrides[key] = formData;
-    }
-
-    editingOverrideKey.value = null;
-  }
-};
-
-const formatEditorJson = () => {
-  const body = overrideForm.value.body.trim();
-  if (!body) return;
-
-  try {
-    // Try to parse as JSON. If it's a string that looks like an object/array, format it.
-    const parsed = JSON.parse(body);
-    overrideForm.value.body = JSON.stringify(parsed, null, 2);
-  } catch {
-    // If it's not valid JSON, maybe it's just a string, we don't format it
-  }
-};
-
-const clearOverride = () => {
-  if (editingOverrideKey.value) {
-    delete customOverrides[editingOverrideKey.value];
-    editingOverrideKey.value = null;
-  }
+  editingOverrideKey.value = entry.key;
 };
 
 const viewLogForKey = (key: string) => {
