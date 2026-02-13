@@ -268,8 +268,8 @@ import {
   scenarioRegistry,
   customScenarios,
   displayKey,
-  type LogEntry,
 } from "../mswRegistry";
+import type { LogEntry } from "../types";
 
 const props = defineProps<{
   filterKey: string | null;

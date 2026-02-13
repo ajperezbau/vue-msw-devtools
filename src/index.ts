@@ -1,15 +1,10 @@
 import { createApp, h, type Plugin } from "vue";
 import MswDevtools from "./mswDevtools.vue";
 import { setupMswRegistry } from "./mswRegistry";
+import type { MswDevtoolsOptions } from "./types";
 
 export * from "./mswRegistry";
 export { MswDevtools };
-
-export interface MswDevtoolsOptions {
-  worker?: any;
-  baseHandlers?: any[];
-  urlResolver?: (url: string) => string;
-}
 
 export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions[]> = {
   install(_app, options) {

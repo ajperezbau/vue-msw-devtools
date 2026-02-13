@@ -378,8 +378,8 @@ import {
   handlerDelays,
   scenarioRegistry,
   scenarioState,
-  type LogEntry,
 } from "./mswRegistry";
+import type { LogEntry } from "./types";
 
 const isOpen = ref(false);
 const activeTab = ref<"registry" | "log" | "presets">("registry");
