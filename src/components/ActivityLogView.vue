@@ -217,13 +217,44 @@
           </div>
 
           <!-- Request Tab -->
-          <div v-if="activeTab === 'request'" class="tab-pane">
-            <CodeBlock 
-              v-if="selectedLog.requestBody" 
-              :code="selectedLog.requestBody" 
-              language="json"
-            />
-            <div v-else class="empty-pane">No request body</div>
+          <div v-if="activeTab === 'request'" class="tab-pane request-pane">
+            <div v-if="selectedLog.headers && Object.keys(selectedLog.headers).length > 0" class="details-section">
+              <h3 class="section-title">Request Headers</h3>
+              <div class="key-value-table">
+                <div class="table-header">
+                  <div class="col-key">Key</div>
+                  <div class="col-value">Value</div>
+                </div>
+                <div v-for="(value, key) in selectedLog.headers" :key="key" class="table-row">
+                  <div class="col-key" :title="key">{{ key }}</div>
+                  <div class="col-value" :title="value">{{ value }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="selectedLog.queryParams && Object.keys(selectedLog.queryParams).length > 0" class="details-section">
+              <h3 class="section-title">Query Parameters</h3>
+              <div class="key-value-table">
+                <div class="table-header">
+                  <div class="col-key">Key</div>
+                  <div class="col-value">Value</div>
+                </div>
+                <div v-for="(value, key) in selectedLog.queryParams" :key="key" class="table-row">
+                  <div class="col-key mono" :title="key">{{ key }}</div>
+                  <div class="col-value" :title="value">{{ value }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="details-section">
+              <h3 class="section-title">Request Body</h3>
+              <CodeBlock 
+                v-if="selectedLog.requestBody" 
+                :code="selectedLog.requestBody" 
+                language="json"
+              />
+              <div v-else class="empty-pane no-border">No request body</div>
+            </div>
           </div>
 
           <!-- Response Tab -->
@@ -287,9 +318,17 @@ const selectedLog = computed(() =>
 );
 
 const tabs = computed(() => {
+  const queryCount = selectedLog.value?.queryParams 
+    ? Object.keys(selectedLog.value.queryParams).length 
+    : 0;
+    
   return [
     { id: 'general', label: 'General' },
-    { id: 'request', label: 'Request', count: selectedLog.value?.requestBody ? undefined : 0 },
+    { 
+      id: 'request', 
+      label: 'Request', 
+      count: queryCount > 0 ? queryCount : undefined 
+    },
     { id: 'response', label: 'Response' } 
   ];
 });
@@ -738,8 +777,80 @@ const formatFullTime = (timestamp: number) => {
   padding: 2rem;
 }
 
-.tab-pane {
-  animation: fadeIn 0.2s ease-in-out;
+.details-section {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.key-value-table {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.table-header {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.table-row {
+  display: flex;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.1s;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.col-key, .col-value {
+  padding: 0.75rem 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-key {
+  width: 35%;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.col-value {
+  flex: 1;
+  color: var(--text-main);
+}
+
+.col-key.mono {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--accent-color);
+}
+
+.empty-pane.no-border {
+  border: none;
+  background: transparent;
+  padding-left: 0;
+  justify-content: flex-start;
+  font-size: 0.85rem;
 }
 
 @keyframes fadeIn {

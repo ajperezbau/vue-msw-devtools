@@ -294,6 +294,19 @@ const registerInternal = (config: {
           responseBody = undefined;
         }
 
+        // Capture headers
+        const headers: Record<string, string> = {};
+        request.headers.forEach((value: string, key: string) => {
+          headers[key] = value;
+        });
+
+        // Capture query parameters
+        const urlObj = new URL(request.url);
+        const queryParams: Record<string, string> = {};
+        urlObj.searchParams.forEach((value: string, key: string) => {
+          queryParams[key] = value;
+        });
+
         activityLog.unshift({
           id: Math.random().toString(36).substring(2),
           timestamp: Date.now(),
@@ -304,6 +317,8 @@ const registerInternal = (config: {
           status: response.status,
           requestBody,
           responseBody,
+          headers,
+          queryParams,
         });
 
         if (activityLog.length > 100) {
