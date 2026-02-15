@@ -232,16 +232,32 @@
               </div>
             </div>
 
-            <div v-if="selectedLog.queryParams && Object.keys(selectedLog.queryParams).length > 0" class="details-section">
-              <h3 class="section-title">Query Parameters</h3>
-              <div class="key-value-table">
-                <div class="table-header">
-                  <div class="col-key">Key</div>
-                  <div class="col-value">Value</div>
+            <div class="params-grid">
+              <div v-if="selectedLog.pathParams && Object.keys(selectedLog.pathParams).length > 0" class="details-section">
+                <h3 class="section-title">Path Parameters</h3>
+                <div class="key-value-table">
+                  <div class="table-header">
+                    <div class="col-key">Key</div>
+                    <div class="col-value">Value</div>
+                  </div>
+                  <div v-for="(value, key) in selectedLog.pathParams" :key="key" class="table-row">
+                    <div class="col-key mono" :title="`:${key}`">:{{ key }}</div>
+                    <div class="col-value" :title="value">{{ value }}</div>
+                  </div>
                 </div>
-                <div v-for="(value, key) in selectedLog.queryParams" :key="key" class="table-row">
-                  <div class="col-key mono" :title="key">{{ key }}</div>
-                  <div class="col-value" :title="value">{{ value }}</div>
+              </div>
+
+              <div v-if="selectedLog.queryParams && Object.keys(selectedLog.queryParams).length > 0" class="details-section">
+                <h3 class="section-title">Query Parameters</h3>
+                <div class="key-value-table">
+                  <div class="table-header">
+                    <div class="col-key">Key</div>
+                    <div class="col-value">Value</div>
+                  </div>
+                  <div v-for="(value, key) in selectedLog.queryParams" :key="key" class="table-row">
+                    <div class="col-key mono" :title="key">{{ key }}</div>
+                    <div class="col-value" :title="value">{{ value }}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -321,13 +337,17 @@ const tabs = computed(() => {
   const queryCount = selectedLog.value?.queryParams 
     ? Object.keys(selectedLog.value.queryParams).length 
     : 0;
+  const pathCount = selectedLog.value?.pathParams 
+    ? Object.keys(selectedLog.value.pathParams).length 
+    : 0;
+  const totalParamsCount = queryCount + pathCount;
     
   return [
     { id: 'general', label: 'General' },
     { 
       id: 'request', 
       label: 'Request', 
-      count: queryCount > 0 ? queryCount : undefined 
+      count: totalParamsCount > 0 ? totalParamsCount : undefined 
     },
     { id: 'response', label: 'Response' } 
   ];
@@ -957,5 +977,26 @@ const formatFullTime = (timestamp: number) => {
     background: var(--bg-secondary);
     border-radius: 8px;
     border: 1px dashed var(--border-color);
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem; /* Generous spacing between columns */
+  margin-bottom: 2.5rem;
+  align-items: start; /* Prevents tables from stretching if they have different heights */
+}
+
+/* Adjustment for mobile or when space is limited */
+@media (max-width: 768px) {
+  .params-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Ensure that direct children of the grid (.details-section sections) do not have extra bottom margin inside the grid */
+.params-grid .details-section {
+  margin-bottom: 0;
 }
 </style>
