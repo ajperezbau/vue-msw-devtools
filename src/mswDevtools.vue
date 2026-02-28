@@ -368,6 +368,14 @@ const formatBody = (body: unknown) => {
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === "Escape" && isOpen.value) {
+    if (editingOverrideKey.value) {
+      editingOverrideKey.value = null;
+      return;
+    }
+    if (showExportDialog.value) {
+      showExportDialog.value = false;
+      return;
+    }
     isOpen.value = false;
   }
 
