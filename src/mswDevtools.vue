@@ -179,7 +179,7 @@
           <div class="reset-menu-container" ref="resetMenuContainer">
             <MswButton
               type="button"
-              @click="showResetMenu = !showResetMenu"
+              @click.stop="showResetMenu = !showResetMenu"
               class="reset-button"
               :class="{ 'menu-open': showResetMenu }"
               title="Reset options"
@@ -253,13 +253,15 @@
         </div>
       </div>
 
-      <RegistryView
-        v-if="activeTab === 'registry'"
-        ref="registryViewRef"
-        @open-override="openOverrideEditor"
-        @view-log="viewLogForKey"
-        @preset-created="activeTab = 'presets'"
-      />
+      <KeepAlive>
+        <RegistryView
+          v-if="activeTab === 'registry'"
+          ref="registryViewRef"
+          @open-override="openOverrideEditor"
+          @view-log="viewLogForKey"
+          @preset-created="activeTab = 'presets'"
+        />
+      </KeepAlive>
 
       <ExportOptionsModal
         v-if="showExportDialog"
@@ -275,14 +277,18 @@
         @close="editingOverrideKey = null"
       />
 
-      <PresetsView v-if="activeTab === 'presets'" />
+      <KeepAlive>
+        <PresetsView v-if="activeTab === 'presets'" />
+      </KeepAlive>
 
-      <ActivityLogView
-        v-if="activeTab === 'log'"
-        v-model:filterKey="logFilterKey"
-        @open-override="openOverrideEditorFromLog"
-        @view-handler="viewHandlerForKey"
-      />
+      <KeepAlive>
+        <ActivityLogView
+          v-if="activeTab === 'log'"
+          v-model:filterKey="logFilterKey"
+          @open-override="openOverrideEditorFromLog"
+          @view-handler="viewHandlerForKey"
+        />
+      </KeepAlive>
     </div>
   </div>
 </template>
@@ -368,6 +374,14 @@ const formatBody = (body: unknown) => {
 
 const handleKeyDown = (e: KeyboardEvent) => {
   if (e.key === "Escape" && isOpen.value) {
+    if (editingOverrideKey.value) {
+      editingOverrideKey.value = null;
+      return;
+    }
+    if (showExportDialog.value) {
+      showExportDialog.value = false;
+      return;
+    }
     isOpen.value = false;
   }
 

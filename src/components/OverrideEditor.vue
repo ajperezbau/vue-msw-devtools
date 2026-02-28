@@ -2,7 +2,7 @@
   <div class="override-editor-overlay" @click.self="$emit('close')">
     <div class="override-editor-content">
       <div class="editor-header">
-        <h3>Override Response: {{ editingKey }}</h3>
+        <h3>Override Response: {{ displayKey(editingKey) }}</h3>
         <MswButton
           type="button"
           variant="icon"
@@ -78,6 +78,7 @@ import MswButton from "./MswButton.vue";
 import {
   customOverrides,
   customScenarios,
+  displayKey,
   scenarioRegistry,
   scenarioState,
 } from "../mswRegistry";

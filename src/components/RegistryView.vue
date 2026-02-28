@@ -354,8 +354,6 @@ const isCustomScenario = (key: string, scenario: string) => {
   return !!customScenarios[key]?.[scenario];
 };
 
-
-
 const toggleKeySelection = (key: string) => {
   if (selectedKeys.value.has(key)) {
     selectedKeys.value.delete(key);
@@ -702,10 +700,6 @@ watch(showOnlyModified, (newValue) => {
   background-color: var(--bg-tertiary) !important;
 }
 
-.registry-table tr.is-selected td {
-  border-bottom-color: var(--accent-color);
-}
-
 .col-selection {
   width: 40px;
   text-align: center;
@@ -838,6 +832,7 @@ watch(showOnlyModified, (newValue) => {
 
 .action-buttons {
   display: flex;
+  justify-content: flex-end;
   gap: 0.25rem;
 }
 

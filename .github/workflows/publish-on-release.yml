@@ -1,27 +1,29 @@
-name: Publish Package on Release
+name: Publish Package
 
+# Se activa automáticamente al hacer 'git push --follow-tags'
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write # Fundamental para usar npm provenance (mayor seguridad)
+      id-token: write # Fundamental para usar provenance (mayor seguridad)
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 1. Configuración de pnpm (basado en tu playwright.yml)
+      # 1. Configuración de pnpm
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
 
-      # 2. Configuración de Node con caché de pnpm y registro de npm
+      # 2. Configuración de Node con caché de pnpm y registro
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -40,7 +42,7 @@ jobs:
       - name: Run Playwright tests
         run: pnpm test
 
-      # 5. Construcción del paquete (vue-tsc -b && vite build)
+      # 5. Construcción del paquete
       - name: Build package
         run: pnpm build
 
@@ -48,15 +50,16 @@ jobs:
       - name: Verify Version Match
         run: |
           PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          # GITHUB_REF al hacer push de un tag es "refs/tags/v0.1.0", esto extrae "0.1.0"
           TAG_VERSION=${GITHUB_REF#refs/tags/v} 
 
           if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
-            echo "Error: La versión en package.json ($PACKAGE_VERSION) no coincide con el tag de la release ($TAG_VERSION)"
+            echo "Error: La versión en package.json ($PACKAGE_VERSION) no coincide con el tag subido ($TAG_VERSION)"
             exit 1
           fi
 
-      # 7. Publicación en npm
+      # 7. Publicación usando pnpm (con flag para ignorar checks de git en CI)
       - name: Publish to npm
-        run: npm publish --provenance --access public
+        run: pnpm publish --provenance --access public --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
