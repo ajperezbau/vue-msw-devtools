@@ -343,7 +343,6 @@ const registerInternal = (config: {
 
 export const setupMswRegistry = (
   instance: any,
-  initialHandlers: any[] = [],
   resolver?: (url: string) => string,
 ) => {
   mswInstance = instance;
@@ -353,33 +352,28 @@ export const setupMswRegistry = (
   if (typeof instance.listHandlers === "function") {
     const existingHandlers = instance.listHandlers();
 
-    // If no initial handlers provided, we capture everything that we won't be managing
-    if (initialHandlers.length === 0) {
-      baseHandlers = existingHandlers.filter((handler: any) => {
-        // If it has __vueDevtoolsConfig, it's explicitly managed by devtools
-        if (handler.__vueDevtoolsConfig) return false;
+    baseHandlers = existingHandlers.filter((handler: any) => {
+      // If it has __vueDevtoolsConfig, it's explicitly managed by devtools
+      if (handler.__vueDevtoolsConfig) return false;
 
-        // If it doesn't have enough info to be auto-discovered, it belongs to baseHandlers
-        if (
-          !handler.info ||
-          typeof handler.info.path !== "string" ||
-          typeof handler.info.method !== "string"
-        ) {
-          return true;
-        }
+      // If it doesn't have enough info to be auto-discovered, it belongs to baseHandlers
+      if (
+        !handler.info ||
+        typeof handler.info.path !== "string" ||
+        typeof handler.info.method !== "string"
+      ) {
+        return true;
+      }
 
-        // Only support standard HTTP methods for auto-discovery
-        const methodLower = handler.info.method.toLowerCase();
-        const supportedMethods = ["get", "post", "put", "delete", "patch"];
-        if (!supportedMethods.includes(methodLower)) {
-          return true;
-        }
+      // Only support standard HTTP methods for auto-discovery
+      const methodLower = handler.info.method.toLowerCase();
+      const supportedMethods = ["get", "post", "put", "delete", "patch"];
+      if (!supportedMethods.includes(methodLower)) {
+        return true;
+      }
 
-        return false; // This handler WILL be auto-discovered (or is already managed)
-      });
-    } else {
-      baseHandlers = initialHandlers;
-    }
+      return false; // This handler WILL be auto-discovered (or is already managed)
+    });
 
     existingHandlers.forEach((handler: any) => {
       // Check if this handler has devtools configuration

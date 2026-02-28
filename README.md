@@ -44,8 +44,6 @@ await worker.start();
 if (process.env.NODE_ENV === "development") {
   app.use(MswDevtoolsPlugin, {
     worker, // required
-    // Optional: add handlers that shouldn't be controlled by the UI
-    baseHandlers: [],
     // Optional: resolve dynamic URLs (e.g. removing IDs) to group them
     urlResolver: (url) => url.replace(/\/\d+/g, "/:id"),
   });
