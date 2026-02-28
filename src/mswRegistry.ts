@@ -96,11 +96,8 @@ export const activityLog = reactive<LogEntry[]>([]);
 export const presets = reactive<Preset[]>([]);
 
 export const displayKey = (key: string) => {
-  const parts = key.split(" ");
-  if (parts.length > 1) {
-    return parts.slice(1).join(" ");
-  }
-  return key;
+  // Strip [METHOD] prefix from native handlers
+  return key.replace(/^\[[A-Z]+\]\s+/, "");
 };
 
 interface RegisteredHandler {
@@ -195,7 +192,7 @@ const registerInternal = (config: {
 
   const factory = (resolver: (url: string) => string) =>
     http[method](resolver(url), async (info: any) => {
-      const { request } = info;
+      const { request, params } = info;
 
       // Capture request body (cloning to avoid consuming the stream)
       let requestBody: unknown;
@@ -297,6 +294,19 @@ const registerInternal = (config: {
           responseBody = undefined;
         }
 
+        // Capture headers
+        const headers: Record<string, string> = {};
+        request.headers.forEach((value: string, key: string) => {
+          headers[key] = value;
+        });
+
+        // Capture query parameters
+        const urlObj = new URL(request.url);
+        const queryParams: Record<string, string> = {};
+        urlObj.searchParams.forEach((value: string, key: string) => {
+          queryParams[key] = value;
+        });
+
         activityLog.unshift({
           id: Math.random().toString(36).substring(2),
           timestamp: Date.now(),
@@ -307,6 +317,9 @@ const registerInternal = (config: {
           status: response.status,
           requestBody,
           responseBody,
+          headers,
+          queryParams,
+          pathParams: params as Record<string, string>,
         });
 
         if (activityLog.length > 100) {

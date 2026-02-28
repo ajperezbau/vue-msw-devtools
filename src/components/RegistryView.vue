@@ -290,6 +290,7 @@ import {
   customScenarios,
   customPresets,
   globalDelay,
+  displayKey,
 } from "../mswRegistry";
 
 const emit = defineEmits<{
@@ -353,13 +354,7 @@ const isCustomScenario = (key: string, scenario: string) => {
   return !!customScenarios[key]?.[scenario];
 };
 
-const displayKey = (key: string) => {
-  const handler = scenarioRegistry[key];
-  if (handler?.isNative) {
-    return key.replace(/^\[[A-Z]+\]\s+/, "");
-  }
-  return key;
-};
+
 
 const toggleKeySelection = (key: string) => {
   if (selectedKeys.value.has(key)) {

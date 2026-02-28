@@ -385,10 +385,11 @@ const deleteCustomPreset = (name: string) => {
 }
 
 .preset-scenarios-preview {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 0.75rem;
   padding-bottom: 2rem;
+  align-items: start;
 }
 
 .preview-tag {

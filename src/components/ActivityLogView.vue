@@ -1,116 +1,144 @@
 <template>
-  <div class="log-container">
-    <div class="log-header">
-      <div class="log-filters">
-        <MswButton
-          v-for="method in ['ALL', 'GET', 'POST', 'PUT', 'PATCH', 'DELETE']"
-          :key="method"
-          type="button"
-          variant="ghost"
-          size="sm"
-          @click="toggleMethod(method)"
-          class="method-toggle-btn"
-          :class="{
-            active: selectedMethods.has(method),
-            [method.toLowerCase()]: true,
-          }"
-        >
-          {{ method }}
-        </MswButton>
-      </div>
-      <MswButton type="button" @click="clearActivityLog" title="Clear logs">
-        Clear
-      </MswButton>
-    </div>
-
-    <div v-if="filterKey" class="log-filter-banner">
-      <span class="filter-info">
-        Showing logs for: <strong>{{ filterKey }}</strong>
-      </span>
-      <MswButton
-        type="button"
-        variant="ghost"
-        @click="emit('update:filterKey', null)"
-        class="clear-filter-button"
-      >
-        Show All Logs
-      </MswButton>
-    </div>
-
-    <div v-if="filteredActivityLog.length === 0" class="empty-state">
-      {{
-        filterKey
-          ? "No requests recorded for this handler."
-          : "No requests recorded yet."
-      }}
-    </div>
-    <div v-else class="log-list" role="list">
-      <div
-        v-for="entry in filteredActivityLog"
-        :key="entry.id"
-        class="log-entry"
-        role="listitem"
-        :class="{
-          'is-expanded': expandedLogId === entry.id,
-          'is-error': entry.status >= 400,
-        }"
-      >
-        <div class="log-entry-header" @click="toggleLogEntry(entry.id)">
-          <span class="log-time">{{ formatTime(entry.timestamp) }}</span>
-          <MswBadge variant="method" :label="entry.method" />
-          <div class="log-url" :title="entry.url">
-            {{ entry.url }}
+  <div class="activity-view">
+    <!-- Left Sidebar: Request List -->
+    <div class="activity-sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-toolbar">
+          <div class="method-filters">
+            <button
+              v-for="method in ['ALL', 'GET', 'POST', 'PUT', 'DELETE']"
+              :key="method"
+              type="button"
+              class="filter-chip"
+              :class="{
+                active: selectedMethods.has(method),
+                [method.toLowerCase()]: true,
+              }"
+              @click="toggleMethod(method)"
+            >
+              {{ method }}
+            </button>
           </div>
-          <div
-            v-if="entry.method !== 'GET' && entry.requestBody"
-            class="log-request-preview"
-            :title="JSON.stringify(entry.requestBody)"
+          <MswButton
+            type="button"
+            variant="icon"
+            size="sm"
+            @click="clearActivityLog"
+            title="Clear logs"
+            class="clear-btn"
           >
-            {{ formatPreview(entry.requestBody) }}
-          </div>
-          <div class="log-scenario-info">
-            <div class="log-key-wrapper">
-              <span class="log-key">{{ displayKey(entry.key) }}</span>
-              <MswBadge
-                v-if="scenarioRegistry[entry.key]?.isNative"
-                variant="native"
-                label="Native"
-                size="sm"
-                title="Native MSW handler"
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
               />
-              <MswButton
-                type="button"
-                variant="icon"
-                size="sm"
-                @click.stop="emit('view-handler', entry.key)"
-                class="mini-icon-button"
-                title="View in Registry"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                  />
-                </svg>
-              </MswButton>
+            </svg>
+          </MswButton>
+        </div>
+        <div class="requests-count">
+          Requests ({{ filteredActivityLog.length }})
+        </div>
+      </div>
+      
+      <div class="sidebar-search">
+        <div class="search-wrapper">
+          <MswInput
+            v-model="searchQuery"
+            placeholder="Filter requests..."
+            class="search-input"
+          />
+          <MswButton
+            v-if="searchQuery"
+            type="button"
+            variant="icon"
+            size="sm"
+            @click="searchQuery = ''"
+            class="clear-search-button"
+            title="Clear search"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </MswButton>
+        </div>
+      </div>
+
+      <div v-if="filterKey" class="filter-banner">
+        <span>Filter: <strong>{{ filterKey }}</strong></span>
+        <button class="reset-link" @click="emit('update:filterKey', null)">
+          Reset
+        </button>
+      </div>
+
+      <div class="sidebar-list" role="list">
+        <div v-if="filteredActivityLog.length === 0" class="empty-list">
+          No requests found
+        </div>
+        <div
+          v-for="entry in filteredActivityLog"
+          :key="entry.id"
+          class="list-item"
+          :class="{
+            selected: selectedLogId === entry.id,
+            'is-error': entry.status >= 400,
+          }"
+          @click="selectLog(entry.id)"
+          role="listitem"
+        >
+          <div class="list-item-row top">
+            <MswBadge variant="method" :label="entry.method" />
+            <span class="list-url" :title="entry.key">{{ displayKey(entry.key) }}</span>
+            <span class="list-time">{{ formatTime(entry.timestamp) }}</span>
+          </div>
+          <div class="list-item-row bottom">
+            <div class="status-indicator">
+              <span
+                class="status-dot"
+                :class="{
+                  success: entry.status >= 200 && entry.status < 300,
+                  warning: entry.status >= 300 && entry.status < 400,
+                  error: entry.status >= 400,
+                }"
+              ></span>
+              <span class="status-code">{{ entry.status }}</span>
             </div>
-            <span class="log-scenario">
-              {{ entry.scenario
-              }}{{ isCustomScenario(entry.key, entry.scenario) ? " ✨" : "" }}
+            <span class="source-label">
+              {{ entry.scenario }}
+              <span v-if="scenarioRegistry[entry.key]?.isNative" class="native-tag">
+                (Native)
+              </span>
             </span>
           </div>
-          <MswBadge variant="status" :label="String(entry.status)" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Panel: Details -->
+    <div class="activity-details">
+      <div v-if="!selectedLog" class="details-placeholder">
+        <div class="placeholder-content">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            class="expand-icon h-4 w-4"
+            class="placeholder-icon"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -118,163 +146,158 @@
             <path
               stroke-linecap="round"
               stroke-linejoin="round"
-              stroke-width="2"
-              d="M19 9l-7 7-7-7"
+              stroke-width="1.5"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
+          <p>Select a request to view details</p>
         </div>
-        <div v-if="expandedLogId === entry.id" class="log-details">
-          <div
-            class="json-search-bar"
-            v-if="entry.requestBody || entry.responseBody"
-          >
-            <div class="json-search-container">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="search-icon h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <MswInput
-                v-model="logSearchPath"
-                placeholder="Filter JSON (e.g. data.items.*.id)"
-                variant="inline"
-                size="sm"
-                class="json-search-input"
-              />
-              <div class="json-help-wrapper">
-                <MswButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  class="json-help-icon"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    class="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </MswButton>
-                <div class="custom-tooltip">
-                  <strong>JSON Path filtering:</strong>
-                  <div>• Use <b>.</b> for nesting (e.g., data.id)</div>
-                  <div>
-                    • Use <b>[n]</b> or <b>.n</b> for array index (e.g.,
-                    items[0])
-                  </div>
-                  <div>
-                    • Use <b>*</b> to map over arrays/objects (e.g.,
-                    items.*.name)
-                  </div>
+      </div>
+
+      <template v-else>
+        <div class="details-header">
+          <div class="header-top">
+            <h2 class="header-title">{{ displayKey(selectedLog.key) }}</h2>
+            <span
+              class="status-pill"
+              :class="{
+                success: selectedLog.status >= 200 && selectedLog.status < 300,
+                warning: selectedLog.status >= 300 && selectedLog.status < 400,
+                error: selectedLog.status >= 400,
+              }"
+            >
+              {{ selectedLog.status }} {{ statusMap[selectedLog.status] }}
+            </span>
+          </div>
+          <div class="header-meta">
+            <span class="method-text">{{ selectedLog.method }}</span>
+            <span class="separator">•</span>
+            <span class="url-text">{{ selectedLog.url }}</span>
+          </div>
+          
+          <div class="details-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.id"
+              class="tab-btn"
+              :class="{ active: activeTab === tab.id }"
+              @click="activeTab = tab.id"
+            >
+              {{ tab.label }}
+              <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="details-content">
+          <!-- General Tab -->
+          <div v-if="activeTab === 'general'" class="tab-pane general-pane">
+            <div class="info-grid">
+              <div class="info-card">
+                <label>Timestamp</label>
+                <div class="info-value big">{{ formatFullTime(selectedLog.timestamp) }}</div>
+              </div>
+               <div class="info-card">
+                <label>Source</label>
+                <div class="info-value">
+                  <span class="source-badge">
+                    {{ selectedLog.scenario }}
+                    {{ isCustomScenario(selectedLog.key, selectedLog.scenario) ? '✨' : '' }}
+                  </span>
                 </div>
               </div>
-              <MswButton
-                v-if="logSearchPath"
-                type="button"
-                variant="ghost"
-                size="sm"
-                @click="logSearchPath = ''"
-                class="clear-json-search"
-                title="Clear filter"
-              >
-                &times;
-              </MswButton>
+              <div class="info-card full-width">
+                <label>Handler Key</label>
+                <div class="info-value code">{{ displayKey(selectedLog.key) }}</div>
+                 <button class="link-btn" @click="emit('view-handler', selectedLog.key)">
+                    View in Registry →
+                 </button>
+              </div>
             </div>
           </div>
 
-          <section
-            v-if="entry.requestBody"
-            class="details-section"
-            aria-label="Request Body"
-          >
-            <div class="details-header">
-              <h4 class="details-title">Request Body</h4>
-              <div class="details-actions">
-                <MswButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  @click="
-                    copyToClipboard(
-                      getFilteredJson(entry.requestBody, logSearchPath),
-                    )
-                  "
-                  class="mini-action-button"
-                  title="Copy to clipboard"
-                >
-                  Copy
-                </MswButton>
+          <!-- Request Tab -->
+          <div v-if="activeTab === 'request'" class="tab-pane request-pane">
+            <div v-if="selectedLog.headers && Object.keys(selectedLog.headers).length > 0" class="details-section">
+              <h3 class="section-title">Request Headers</h3>
+              <div class="key-value-table">
+                <div class="table-header">
+                  <div class="col-key">Key</div>
+                  <div class="col-value">Value</div>
+                </div>
+                <div v-for="(value, key) in selectedLog.headers" :key="key" class="table-row">
+                  <div class="col-key" :title="key">{{ key }}</div>
+                  <div class="col-value" :title="value">{{ value }}</div>
+                </div>
               </div>
             </div>
-            <pre class="details-content">{{
-              formatBody(getFilteredJson(entry.requestBody, logSearchPath))
-            }}</pre>
-          </section>
-          <section
-            v-if="entry.responseBody"
-            class="details-section"
-            aria-label="Response Body"
-          >
-            <div class="details-header">
-              <h4 class="details-title">Response Body</h4>
-              <div class="details-actions">
-                <MswButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  @click="
-                    copyToClipboard(
-                      getFilteredJson(entry.responseBody, logSearchPath),
-                    )
-                  "
-                  class="mini-action-button"
-                  title="Copy to clipboard"
-                >
-                  Copy
-                </MswButton>
-                <MswButton
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  @click="emit('open-override', entry)"
-                  class="mini-action-button"
-                >
-                  Use as manual override
-                </MswButton>
+
+            <div class="params-grid">
+              <div v-if="selectedLog.pathParams && Object.keys(selectedLog.pathParams).length > 0" class="details-section">
+                <h3 class="section-title">Path Parameters</h3>
+                <div class="key-value-table">
+                  <div class="table-header">
+                    <div class="col-key">Key</div>
+                    <div class="col-value">Value</div>
+                  </div>
+                  <div v-for="(value, key) in selectedLog.pathParams" :key="key" class="table-row">
+                    <div class="col-key mono" :title="`:${key}`">:{{ key }}</div>
+                    <div class="col-value" :title="value">{{ value }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="selectedLog.queryParams && Object.keys(selectedLog.queryParams).length > 0" class="details-section">
+                <h3 class="section-title">Query Parameters</h3>
+                <div class="key-value-table">
+                  <div class="table-header">
+                    <div class="col-key">Key</div>
+                    <div class="col-value">Value</div>
+                  </div>
+                  <div v-for="(value, key) in selectedLog.queryParams" :key="key" class="table-row">
+                    <div class="col-key mono" :title="key">{{ key }}</div>
+                    <div class="col-value" :title="value">{{ value }}</div>
+                  </div>
+                </div>
               </div>
             </div>
-            <pre class="details-content">{{
-              formatBody(getFilteredJson(entry.responseBody, logSearchPath))
-            }}</pre>
-          </section>
+
+            <div class="details-section">
+              <h3 class="section-title">Request Body</h3>
+              <CodeBlock 
+                v-if="selectedLog.requestBody" 
+                :code="selectedLog.requestBody" 
+                language="json"
+              />
+              <div v-else class="empty-pane no-border">No request body</div>
+            </div>
+          </div>
+
+          <!-- Response Tab -->
+          <div v-if="activeTab === 'response'" class="tab-pane">
+            <CodeBlock 
+              v-if="selectedLog.responseBody" 
+              :code="selectedLog.responseBody" 
+              language="json"
+            >
+              <template #header>
+                 <button class="action-btn override-btn" @click="emit('open-override', selectedLog)">Use as Override</button>
+              </template>
+            </CodeBlock>
+            <div v-else class="empty-pane">No response body</div>
+          </div>
         </div>
-      </div>
+      </template>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import MswBadge from "./MswBadge.vue";
 import MswButton from "./MswButton.vue";
 import MswInput from "./MswInput.vue";
+import CodeBlock from "./CodeBlock.vue";
 import {
   activityLog,
   clearActivityLog,
@@ -294,16 +317,48 @@ const emit = defineEmits<{
   (e: "view-handler", key: string): void;
 }>();
 
-const expandedLogId = ref<string | null>(null);
+const selectedLogId = ref<string | null>(null);
+const activeTab = ref("general");
 const selectedMethods = ref<Set<string>>(new Set(["ALL"]));
-const logSearchPath = ref("");
+
+// Status code map for display
+const statusMap: Record<number, string> = {
+  200: "OK", 201: "Created", 204: "No Content",
+  301: "Moved Permanently", 304: "Not Modified",
+  400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found",
+  500: "Internal Server Error",
+};
+
+const selectedLog = computed(() => 
+  activityLog.find(l => l.id === selectedLogId.value)
+);
+
+const tabs = computed(() => {
+  const queryCount = selectedLog.value?.queryParams 
+    ? Object.keys(selectedLog.value.queryParams).length 
+    : 0;
+  const pathCount = selectedLog.value?.pathParams 
+    ? Object.keys(selectedLog.value.pathParams).length 
+    : 0;
+  const totalParamsCount = queryCount + pathCount;
+    
+  return [
+    { id: 'general', label: 'General' },
+    { 
+      id: 'request', 
+      label: 'Request', 
+      count: totalParamsCount > 0 ? totalParamsCount : undefined 
+    },
+    { id: 'response', label: 'Response' } 
+  ];
+});
 
 const isCustomScenario = (key: string, scenarioName: string) => {
   return customScenarios[key] && customScenarios[key][scenarioName];
 };
 
-const toggleLogEntry = (id: string) => {
-  expandedLogId.value = expandedLogId.value === id ? null : id;
+const selectLog = (id: string) => {
+  selectedLogId.value = id;
 };
 
 const toggleMethod = (method: string) => {
@@ -314,64 +369,40 @@ const toggleMethod = (method: string) => {
     selectedMethods.value.delete("ALL");
     if (selectedMethods.value.has(method)) {
       selectedMethods.value.delete(method);
-      if (selectedMethods.value.size === 0) {
-        selectedMethods.value.add("ALL");
-      }
+      if (selectedMethods.value.size === 0) selectedMethods.value.add("ALL");
     } else {
       selectedMethods.value.add(method);
     }
   }
 };
 
-const getFilteredJson = (data: unknown, path: string) => {
-  if (!path || !data || typeof data !== "object") return data;
+const searchQuery = ref("");
 
-  // Normalize path: items[0].id -> items.0.id
-  const normalizedPath = path.replace(/\[(\d+)\]/g, ".$1").replace(/^\./, "");
-  const parts = normalizedPath.split(".").filter(Boolean);
+const filteredActivityLog = computed(() => {
+  const query = searchQuery.value.toLowerCase();
+  return activityLog.filter((entry) => {
+    const matchesKey = !props.filterKey || entry.key === props.filterKey;
+    const matchesMethod =
+      selectedMethods.value.has("ALL") ||
+      selectedMethods.value.has(entry.method);
+    
+    // Search by URL, Key (displayed), or Method
+    const matchesQuery = !query || 
+        entry.url.toLowerCase().includes(query) || 
+        displayKey(entry.key).toLowerCase().includes(query) ||
+        entry.method.toLowerCase().includes(query);
 
-  const navigate = (current: unknown, segments: string[]): unknown => {
-    if (segments.length === 0) return current;
-    if (!current || typeof current !== "object") return undefined;
+    return matchesKey && matchesMethod && matchesQuery;
+  });
+});
 
-    const [head, ...tail] = segments;
-
-    if (head === "*") {
-      if (Array.isArray(current)) {
-        const results = current
-          .map((item) => navigate(item, tail))
-          .filter((v) => v !== undefined);
-        return results.length > 0 ? results : undefined;
-      } else {
-        const results: Record<string, unknown> = {};
-        const entries = Object.entries(current as Record<string, unknown>);
-        for (const [key, val] of entries) {
-          const value = navigate(val, tail);
-          if (value !== undefined) results[key] = value;
-        }
-        return Object.keys(results).length > 0 ? results : undefined;
-      }
+watch(filteredActivityLog, (newLogs) => {
+    if (selectedLogId.value && !newLogs.find(l => l.id === selectedLogId.value)) {
+        selectedLogId.value = null;
     }
+});
 
-    if (head === undefined) return current;
-    return navigate((current as Record<string, unknown>)[head], tail);
-  };
 
-  const result = navigate(data, parts);
-  return result !== undefined ? result : "No matches found";
-};
-
-const formatBody = (body: unknown) => {
-  if (body === undefined || body === null) return "";
-  if (typeof body === "string") return body;
-  return JSON.stringify(body, null, 2);
-};
-
-const formatPreview = (body: unknown) => {
-  if (body === undefined || body === null) return "";
-  const text = typeof body === "string" ? body : JSON.stringify(body);
-  return text.length > 60 ? text.substring(0, 60) + "..." : text;
-};
 
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleTimeString(undefined, {
@@ -382,431 +413,590 @@ const formatTime = (timestamp: number) => {
   });
 };
 
-const copyToClipboard = async (data: unknown) => {
-  try {
-    const text =
-      typeof data === "string" ? data : JSON.stringify(data, null, 2);
-    await navigator.clipboard.writeText(text);
-  } catch {
-    // Fail silently
-  }
+const formatFullTime = (timestamp: number) => {
+    const d = new Date(timestamp);
+    const time = d.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const ms = String(d.getMilliseconds()).padStart(3, '0');
+    return `${time}.${ms}`;
 };
-
-const filteredActivityLog = computed(() => {
-  return activityLog.filter((entry) => {
-    const matchesKey = !props.filterKey || entry.key === props.filterKey;
-    const matchesMethod =
-      selectedMethods.value.has("ALL") ||
-      selectedMethods.value.has(entry.method);
-    return matchesKey && matchesMethod;
-  });
-});
 </script>
 
 <style scoped>
-.log-container {
+.activity-view {
   display: flex;
-  flex-direction: column;
   height: 100%;
+  width: 100%;
   overflow: hidden;
   background-color: var(--bg-main);
+  color: var(--text-main);
+  font-family: inherit;
 }
 
-.log-header {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+/* Sidebar */
+.activity-sidebar {
+  width: 350px;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  border-right: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
 }
 
-.log-filters {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.method-toggle-btn.msw-button {
-  border-radius: 0.375rem;
-  border: 1px solid var(--border-color);
-  background: var(--bg-secondary);
-  color: var(--text-tertiary);
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.method-toggle-btn.msw-button:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-secondary);
-}
-
-.method-toggle-btn.msw-button.active {
-  background: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
-}
-
-.method-toggle-btn.msw-button.active.all {
-  background-color: var(--method-all-bg);
-  color: var(--method-all-text);
-  border-color: var(--method-all-border);
-}
-
-.method-toggle-btn.msw-button.active.get {
-  background-color: var(--method-get-bg);
-  color: var(--method-get-text);
-  border-color: var(--method-get-border);
-}
-
-.method-toggle-btn.msw-button.active.post {
-  background-color: var(--method-post-bg);
-  color: var(--method-post-text);
-  border-color: var(--method-post-border);
-}
-
-.method-toggle-btn.msw-button.active.put {
-  background-color: var(--method-put-bg);
-  color: var(--method-put-text);
-  border-color: var(--method-put-border);
-}
-
-.method-toggle-btn.msw-button.active.patch {
-  background-color: var(--method-patch-bg);
-  color: var(--method-patch-text);
-  border-color: var(--method-patch-border);
-}
-
-.method-toggle-btn.msw-button.active.delete {
-  background-color: var(--method-delete-bg);
-  color: var(--method-delete-text);
-  border-color: var(--method-delete-border);
-}
-
-.log-filter-banner {
-  padding: 0.5rem 1rem;
-  background-color: var(--accent-soft);
+.sidebar-header {
+  padding: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.sidebar-search {
+  padding: 1rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.search-wrapper {
+  position: relative;
+  width: 100%;
   display: flex;
-  justify-content: space-between;
   align-items: center;
 }
 
-.filter-info {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+.search-input.msw-input {
+  width: 100%;
+  padding-right: 2.5rem;
+  font-size: 0.875rem;
 }
 
-.clear-filter-button.msw-button {
+.clear-search-button.msw-button {
+  position: absolute;
+  right: 0.5rem;
   background: none;
   border: none;
-  color: var(--accent-color);
-  font-size: 0.75rem;
-  font-weight: 700;
+  color: var(--text-tertiary);
   cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-}
-
-.log-list {
-  flex: 1;
-  overflow-y: auto;
-}
-
-.log-entry {
-  border-bottom: 1px solid var(--border-color);
-  transition: background-color 0.2s;
-}
-
-.log-entry:hover {
-  background-color: var(--bg-secondary);
-}
-
-.log-entry.is-expanded {
-  background-color: var(--bg-secondary);
-}
-
-.log-entry.is-error {
-  border-left: 3px solid #ef4444;
-}
-
-.log-entry-header {
-  padding: 0.75rem 1rem;
+  padding: 0.25rem;
+  border-radius: 9999px;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  cursor: pointer;
+  justify-content: center;
+  transition: all 0.2s;
+  width: auto;
+  height: auto;
 }
 
-.log-time {
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 0.65rem;
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-.log-url {
-  flex: 1;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 0.75rem;
-  color: var(--text-main);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.log-request-preview {
-  font-size: 0.65rem;
-  color: var(--text-tertiary);
+.clear-search-button.msw-button:hover {
   background-color: var(--bg-tertiary);
-  padding: 0.1rem 0.4rem;
-  border-radius: 0.25rem;
-  max-width: 150px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: var(--text-main);
 }
 
-.log-scenario-info {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  text-align: right;
-  min-width: 120px;
-}
-
-.log-key-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.log-key {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--text-tertiary);
-}
-
-.log-scenario {
-  font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--accent-color);
-}
-
-.expand-icon {
-  color: var(--text-tertiary);
-  transition: transform 0.2s;
-}
-
-.is-expanded .expand-icon {
-  transform: rotate(180deg);
-}
-
-.log-details {
-  padding: 1rem;
-  background-color: var(--bg-main);
-  border-top: 1px dashed var(--border-color);
-}
-
-.details-section {
-  margin-bottom: 1rem;
-}
-
-.details-header {
+.sidebar-toolbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
 
-.details-title {
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin: 0;
+.method-filters {
+  display: flex;
+  gap: 0.25rem;
 }
 
-.mini-action-button.msw-button {
+.filter-chip {
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-tertiary);
   font-size: 0.65rem;
-  background-color: var(--bg-tertiary);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 0.25rem;
-  padding: 0.1rem 0.4rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-chip:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.filter-chip.active {
+    background: var(--bg-tertiary); 
+    color: var(--text-main);
+    border-color: var(--border-color);
+}
+.filter-chip.active.get { color: var(--method-get-text); border-color: var(--method-get-border); background: var(--method-get-bg); }
+.filter-chip.active.post { color: var(--method-post-text); border-color: var(--method-post-border); background: var(--method-post-bg); }
+.filter-chip.active.put { color: var(--method-put-text); border-color: var(--method-put-border); background: var(--method-put-bg); }
+.filter-chip.active.delete { color: var(--method-delete-text); border-color: var(--method-delete-border); background: var(--method-delete-bg); }
+.filter-chip.active.all { color: var(--text-main); border-color: var(--border-color); background: var(--bg-tertiary); }
+
+
+.requests-count {
+  font-size: 0.7rem;
   font-weight: 600;
-}
-
-.mini-action-button.msw-button:hover {
-  background-color: var(--accent-color);
-  color: white;
-  border-color: var(--accent-color);
-}
-
-.details-content {
-  margin: 0;
-  padding: 0.75rem;
-  background-color: var(--bg-tertiary);
-  color: var(--text-main);
-  border-radius: 0.5rem;
-  font-family: "JetBrains Mono", "Fira Code", monospace;
-  font-size: 0.75rem;
-  overflow-x: auto;
-  white-space: pre-wrap;
-  max-height: 400px;
-  border: 1px solid var(--border-color);
-}
-
-.theme-dark .details-content {
-  background-color: #121212;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 4rem 1rem;
   color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-banner {
+  padding: 0.5rem 0.75rem;
+  background-color: var(--accent-soft);
+  font-size: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.reset-link {
+  background: none;
+  border: none;
+  color: var(--accent-color);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0;
+}
+
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.empty-list {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
   font-style: italic;
 }
 
-.json-search-bar {
-  margin-bottom: 1rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px dashed var(--border-color);
+.list-item {
+  padding: 0.75rem 0.75rem;
+  border-bottom: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: background-color 0.15s;
 }
 
-.json-search-container {
+.list-item:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.list-item.selected {
+  background-color: var(--bg-tertiary);
+  border-left: 3px solid var(--accent-color);
+  padding-left: calc(0.75rem - 3px); /* adjust padding to prevent jump */
+}
+
+.list-item-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 0.5rem;
-  background-color: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  padding: 0.25rem 0.75rem;
-  transition: all 0.2s;
 }
 
-.json-search-container:focus-within {
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+.list-item-row.top {
+  margin-bottom: 0.4rem;
 }
 
-.json-search-input.msw-input {
+.list-url {
   flex: 1;
-  border: none;
-  outline: none;
+  font-family: "JetBrains Mono", monospace;
   font-size: 0.75rem;
-  padding: 0.25rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--text-main);
-  background-color: transparent;
+  font-weight: 500;
 }
 
-.search-icon {
+.list-time {
+  font-size: 0.65rem;
   color: var(--text-tertiary);
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-.json-help-icon.msw-button {
-  background: none;
-  border: none;
-  padding: 0.25rem;
-  color: var(--text-tertiary);
-  cursor: help;
+.status-indicator {
   display: flex;
   align-items: center;
-  transition: all 0.2s;
-  border-radius: 0.25rem;
+  gap: 0.35rem;
 }
 
-.json-help-icon.msw-button:hover {
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--text-tertiary);
+}
+.status-dot.success { background-color: #10b981; }
+.status-dot.warning { background-color: #f59e0b; }
+.status-dot.error { background-color: #ef4444; }
+
+.status-code {
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  background-color: var(--bg-tertiary);
+  font-weight: 500;
 }
 
-.json-help-wrapper {
-  position: relative;
+.source-label {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    width: 100%;
+    margin-left: 0.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.native-tag {
+    opacity: 0.7;
+    font-size: 0.65rem;
+}
+
+.h-3 { height: 0.75rem; }
+.w-3 { width: 0.75rem; }
+.h-4 { height: 1rem; }
+.w-4 { width: 1rem; }
+
+/* Details Panel */
+.activity-details {
+  flex: 1;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  background-color: var(--bg-main);
+  overflow: hidden;
 }
 
-.custom-tooltip {
-  visibility: hidden;
-  position: absolute;
-  bottom: 125%;
-  right: 0;
-  background-color: #1f2937;
-  color: white;
-  padding: 0.75rem;
-  border-radius: 0.5rem;
-  font-size: 0.75rem;
-  z-index: 10002;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.25);
-  width: max-content;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.2s;
-  border: 1px solid #374151;
-}
-
-.custom-tooltip::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  right: 12px;
-  border-width: 6px;
-  border-style: solid;
-  border-color: #1f2937 transparent transparent transparent;
-}
-
-.json-help-wrapper:hover .custom-tooltip {
-  visibility: visible;
-  opacity: 1;
-}
-
-.clear-json-search.msw-button {
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  font-size: 1.25rem;
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
+.details-placeholder {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  color: var(--text-tertiary);
+}
+.placeholder-content {
+  text-align: center;
+}
+.placeholder-icon {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.2;
 }
 
-.clear-json-search.msw-button:hover {
+.details-header {
+  padding: 1.5rem 2rem 0;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-main);
+  flex-shrink: 0;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  word-break: break-all;
+  margin-right: 1rem;
+  line-height: 1.3;
   color: var(--text-main);
 }
 
-.mini-icon-button.msw-button {
-  background: none;
-  border: none;
-  color: var(--text-tertiary);
-  cursor: pointer;
-  padding: 2px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  transition: all 0.2s;
+.header-meta {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
 }
 
-.mini-icon-button.msw-button:hover {
-  background-color: var(--bg-tertiary);
+.method-text {
+  font-weight: 700;
   color: var(--accent-color);
 }
 
-.h-3 {
-  height: 0.75rem;
+.separator {
+  margin: 0 0.5rem;
+  color: var(--text-tertiary);
 }
-.w-3 {
-  width: 0.75rem;
+
+.status-pill {
+    padding: 0.25rem 0.6rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
 }
-.h-4 {
-  height: 1rem;
+.status-pill.success { background-color: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.status-pill.warning { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
+.status-pill.error { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; }
+
+/* Dark mode overrides for status pill (basic attempt based on possible classes, 
+   though variables would be better if we had semantic color vars) */
+:global(.theme-dark) .status-pill.success { background-color: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
+:global(.theme-dark) .status-pill.warning { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+:global(.theme-dark) .status-pill.error { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
+
+
+.details-tabs {
+  display: flex;
+  gap: 2rem;
 }
-.w-4 {
-  width: 1rem;
+
+.tab-btn {
+  background: none;
+  border: none;
+  padding: 0.75rem 0;
+  font-size: 0.85rem;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  position: relative;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.tab-btn:hover {
+  color: var(--text-main);
+}
+
+.tab-btn.active {
+  color: var(--accent-color);
+}
+
+.tab-btn.active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: var(--accent-color);
+}
+
+.tab-count {
+  background: var(--bg-tertiary);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  margin-left: 0.3rem;
+  vertical-align: middle;
+}
+
+.details-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 2rem;
+}
+
+.details-section {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 1rem;
+}
+
+.key-value-table {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--bg-secondary);
+}
+
+.table-header {
+  display: flex;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.table-row {
+  display: flex;
+  font-size: 0.8rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color 0.1s;
+}
+
+.table-row:last-child {
+  border-bottom: none;
+}
+
+.table-row:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.col-key, .col-value {
+  padding: 0.75rem 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.col-key {
+  width: 35%;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.col-value {
+  flex: 1;
+  color: var(--text-main);
+}
+
+.col-key.mono {
+  font-family: "JetBrains Mono", monospace;
+  color: var(--accent-color);
+}
+
+.empty-pane.no-border {
+  border: none;
+  background: transparent;
+  padding-left: 0;
+  justify-content: flex-start;
+  font-size: 0.85rem;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+}
+
+.info-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  padding: 1.25rem;
+  border-radius: 8px;
+}
+.info-card.full-width {
+    grid-column: span 2;
+}
+
+.info-card label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+.info-value.big {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-family: "JetBrains Mono", monospace;
+}
+.info-value.code {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--accent-color);
+  cursor: pointer;
+  display: block;
+}
+.link-btn:hover { text-decoration: underline; }
+
+.source-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+
+
+.pane-actions {
+    margin-bottom: 1rem;
+    display: flex;
+    gap: 0.75rem;
+}
+
+.action-btn {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+.override-btn {
+    margin-left: auto;
+    margin-right: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.7rem;
+}
+.action-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-main);
+    border-color: var(--text-tertiary);
+}
+
+.empty-pane {
+    color: var(--text-tertiary);
+    font-style: italic;
+    text-align: center;
+    padding: 3rem;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px dashed var(--border-color);
+}
+
+.params-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem; /* Generous spacing between columns */
+  margin-bottom: 2.5rem;
+  align-items: start; /* Prevents tables from stretching if they have different heights */
+}
+
+/* Adjustment for mobile or when space is limited */
+@media (max-width: 768px) {
+  .params-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+/* Ensure that direct children of the grid (.details-section sections) do not have extra bottom margin inside the grid */
+.params-grid .details-section {
+  margin-bottom: 0;
 }
 </style>
