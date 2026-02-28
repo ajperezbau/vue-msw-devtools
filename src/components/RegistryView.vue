@@ -700,10 +700,6 @@ watch(showOnlyModified, (newValue) => {
   background-color: var(--bg-tertiary) !important;
 }
 
-.registry-table tr.is-selected td {
-  border-bottom-color: var(--accent-color);
-}
-
 .col-selection {
   width: 40px;
   text-align: center;
