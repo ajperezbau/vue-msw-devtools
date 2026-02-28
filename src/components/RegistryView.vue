@@ -354,8 +354,6 @@ const isCustomScenario = (key: string, scenario: string) => {
   return !!customScenarios[key]?.[scenario];
 };
 
-
-
 const toggleKeySelection = (key: string) => {
   if (selectedKeys.value.has(key)) {
     selectedKeys.value.delete(key);
@@ -838,6 +836,7 @@ watch(showOnlyModified, (newValue) => {
 
 .action-buttons {
   display: flex;
+  justify-content: flex-end;
   gap: 0.25rem;
 }
 

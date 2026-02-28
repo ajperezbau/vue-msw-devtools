@@ -12,9 +12,15 @@ export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions[]> = {
 
     const opts = Array.isArray(options) ? options[0] : options;
 
-    if (opts?.worker) {
-      setupMswRegistry(opts.worker, opts.baseHandlers, opts.urlResolver);
+    if (!opts?.worker) {
+      console.error(
+        "[MswDevtoolsPlugin] A MSW worker instance is required. " +
+          "Pass it via: app.use(MswDevtoolsPlugin, { worker })",
+      );
+      return;
     }
+
+    setupMswRegistry(opts.worker, opts.baseHandlers, opts.urlResolver);
 
     if (document.getElementById("msw-devtools-plugin-root")) return;
 

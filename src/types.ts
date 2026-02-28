@@ -72,7 +72,8 @@ export interface CustomScenario {
  * Options for the MswDevtoolsPlugin.
  */
 export interface MswDevtoolsOptions {
-  worker?: any;
+  /** The MSW `SetupWorkerApi` instance. Required. */
+  worker: any;
   baseHandlers?: any[];
   urlResolver?: (url: string) => string;
 }

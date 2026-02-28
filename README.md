@@ -40,10 +40,10 @@ const app = createApp(App);
 const worker = setupWorker();
 await worker.start();
 
-// 2. Install the plugin and pass the worker instance
+// 2. Install the plugin — worker is required
 if (process.env.NODE_ENV === "development") {
   app.use(MswDevtoolsPlugin, {
-    worker,
+    worker, // required
     // Optional: add handlers that shouldn't be controlled by the UI
     baseHandlers: [],
     // Optional: resolve dynamic URLs (e.g. removing IDs) to group them
@@ -56,14 +56,14 @@ app.mount("#app");
 
 ### Advanced Usage
 
-If you prefer to keep MSW initialization separate, you can still use the previous method:
+If you prefer to keep MSW initialization separate, you can call `setupMswRegistry` directly and still pass the worker to the plugin:
 
 ```typescript
 import { setupMswRegistry, MswDevtoolsPlugin } from "msw-devtools-plugin";
 
 // ... setup worker
 setupMswRegistry(worker);
-app.use(MswDevtoolsPlugin);
+app.use(MswDevtoolsPlugin, { worker }); // worker is required
 ```
 
 ### Zero Config Discovery
