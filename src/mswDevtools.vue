@@ -253,13 +253,15 @@
         </div>
       </div>
 
-      <RegistryView
-        v-if="activeTab === 'registry'"
-        ref="registryViewRef"
-        @open-override="openOverrideEditor"
-        @view-log="viewLogForKey"
-        @preset-created="activeTab = 'presets'"
-      />
+      <KeepAlive>
+        <RegistryView
+          v-if="activeTab === 'registry'"
+          ref="registryViewRef"
+          @open-override="openOverrideEditor"
+          @view-log="viewLogForKey"
+          @preset-created="activeTab = 'presets'"
+        />
+      </KeepAlive>
 
       <ExportOptionsModal
         v-if="showExportDialog"
@@ -275,14 +277,18 @@
         @close="editingOverrideKey = null"
       />
 
-      <PresetsView v-if="activeTab === 'presets'" />
+      <KeepAlive>
+        <PresetsView v-if="activeTab === 'presets'" />
+      </KeepAlive>
 
-      <ActivityLogView
-        v-if="activeTab === 'log'"
-        v-model:filterKey="logFilterKey"
-        @open-override="openOverrideEditorFromLog"
-        @view-handler="viewHandlerForKey"
-      />
+      <KeepAlive>
+        <ActivityLogView
+          v-if="activeTab === 'log'"
+          v-model:filterKey="logFilterKey"
+          @open-override="openOverrideEditorFromLog"
+          @view-handler="viewHandlerForKey"
+        />
+      </KeepAlive>
     </div>
   </div>
 </template>
