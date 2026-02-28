@@ -47,7 +47,7 @@
           Requests ({{ filteredActivityLog.length }})
         </div>
       </div>
-      
+
       <div class="sidebar-search">
         <div class="search-wrapper">
           <MswInput
@@ -83,7 +83,9 @@
       </div>
 
       <div v-if="filterKey" class="filter-banner">
-        <span>Filter: <strong>{{ filterKey }}</strong></span>
+        <span
+          >Filter: <strong>{{ filterKey }}</strong></span
+        >
         <button class="reset-link" @click="emit('update:filterKey', null)">
           Reset
         </button>
@@ -106,7 +108,9 @@
         >
           <div class="list-item-row top">
             <MswBadge variant="method" :label="entry.method" />
-            <span class="list-url" :title="entry.key">{{ displayKey(entry.key) }}</span>
+            <span class="list-url" :title="entry.key">{{
+              displayKey(entry.key)
+            }}</span>
             <span class="list-time">{{ formatTime(entry.timestamp) }}</span>
           </div>
           <div class="list-item-row bottom">
@@ -123,7 +127,10 @@
             </div>
             <span class="source-label">
               {{ entry.scenario }}
-              <span v-if="scenarioRegistry[entry.key]?.isNative" class="native-tag">
+              <span
+                v-if="scenarioRegistry[entry.key]?.isNative"
+                class="native-tag"
+              >
                 (Native)
               </span>
             </span>
@@ -174,7 +181,7 @@
             <span class="separator">•</span>
             <span class="url-text">{{ selectedLog.url }}</span>
           </div>
-          
+
           <div class="details-tabs">
             <button
               v-for="tab in tabs"
@@ -184,7 +191,9 @@
               @click="activeTab = tab.id"
             >
               {{ tab.label }}
-              <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
+              <span v-if="tab.count !== undefined" class="tab-count">{{
+                tab.count
+              }}</span>
             </button>
           </div>
         </div>
@@ -195,37 +204,58 @@
             <div class="info-grid">
               <div class="info-card">
                 <label>Timestamp</label>
-                <div class="info-value big">{{ formatFullTime(selectedLog.timestamp) }}</div>
+                <div class="info-value big">
+                  {{ formatFullTime(selectedLog.timestamp) }}
+                </div>
               </div>
-               <div class="info-card">
+              <div class="info-card">
                 <label>Source</label>
                 <div class="info-value">
                   <span class="source-badge">
                     {{ selectedLog.scenario }}
-                    {{ isCustomScenario(selectedLog.key, selectedLog.scenario) ? '✨' : '' }}
+                    {{
+                      isCustomScenario(selectedLog.key, selectedLog.scenario)
+                        ? "✨"
+                        : ""
+                    }}
                   </span>
                 </div>
               </div>
               <div class="info-card full-width">
                 <label>Handler Key</label>
-                <div class="info-value code">{{ displayKey(selectedLog.key) }}</div>
-                 <button class="link-btn" @click="emit('view-handler', selectedLog.key)">
-                    View in Registry →
-                 </button>
+                <div class="info-value code">
+                  {{ displayKey(selectedLog.key) }}
+                </div>
+                <button
+                  class="link-btn"
+                  @click="emit('view-handler', selectedLog.key)"
+                >
+                  View in Registry →
+                </button>
               </div>
             </div>
           </div>
 
           <!-- Request Tab -->
           <div v-if="activeTab === 'request'" class="tab-pane request-pane">
-            <div v-if="selectedLog.headers && Object.keys(selectedLog.headers).length > 0" class="details-section">
+            <div
+              v-if="
+                selectedLog.headers &&
+                Object.keys(selectedLog.headers).length > 0
+              "
+              class="details-section"
+            >
               <h3 class="section-title">Request Headers</h3>
               <div class="key-value-table">
                 <div class="table-header">
                   <div class="col-key">Key</div>
                   <div class="col-value">Value</div>
                 </div>
-                <div v-for="(value, key) in selectedLog.headers" :key="key" class="table-row">
+                <div
+                  v-for="(value, key) in selectedLog.headers"
+                  :key="key"
+                  class="table-row"
+                >
                   <div class="col-key" :title="key">{{ key }}</div>
                   <div class="col-value" :title="value">{{ value }}</div>
                 </div>
@@ -233,28 +263,50 @@
             </div>
 
             <div class="params-grid">
-              <div v-if="selectedLog.pathParams && Object.keys(selectedLog.pathParams).length > 0" class="details-section">
+              <div
+                v-if="
+                  selectedLog.pathParams &&
+                  Object.keys(selectedLog.pathParams).length > 0
+                "
+                class="details-section"
+              >
                 <h3 class="section-title">Path Parameters</h3>
                 <div class="key-value-table">
                   <div class="table-header">
                     <div class="col-key">Key</div>
                     <div class="col-value">Value</div>
                   </div>
-                  <div v-for="(value, key) in selectedLog.pathParams" :key="key" class="table-row">
-                    <div class="col-key mono" :title="`:${key}`">:{{ key }}</div>
+                  <div
+                    v-for="(value, key) in selectedLog.pathParams"
+                    :key="key"
+                    class="table-row"
+                  >
+                    <div class="col-key mono" :title="`:${key}`">
+                      :{{ key }}
+                    </div>
                     <div class="col-value" :title="value">{{ value }}</div>
                   </div>
                 </div>
               </div>
 
-              <div v-if="selectedLog.queryParams && Object.keys(selectedLog.queryParams).length > 0" class="details-section">
+              <div
+                v-if="
+                  selectedLog.queryParams &&
+                  Object.keys(selectedLog.queryParams).length > 0
+                "
+                class="details-section"
+              >
                 <h3 class="section-title">Query Parameters</h3>
                 <div class="key-value-table">
                   <div class="table-header">
                     <div class="col-key">Key</div>
                     <div class="col-value">Value</div>
                   </div>
-                  <div v-for="(value, key) in selectedLog.queryParams" :key="key" class="table-row">
+                  <div
+                    v-for="(value, key) in selectedLog.queryParams"
+                    :key="key"
+                    class="table-row"
+                  >
                     <div class="col-key mono" :title="key">{{ key }}</div>
                     <div class="col-value" :title="value">{{ value }}</div>
                   </div>
@@ -264,24 +316,31 @@
 
             <div class="details-section">
               <h3 class="section-title">Request Body</h3>
-              <CodeBlock 
-                v-if="selectedLog.requestBody" 
-                :code="selectedLog.requestBody" 
+              <CodeBlock
+                v-if="selectedLog.requestBody"
+                :code="selectedLog.requestBody"
                 language="json"
+                max-height="400px"
               />
               <div v-else class="empty-pane no-border">No request body</div>
             </div>
           </div>
 
           <!-- Response Tab -->
-          <div v-if="activeTab === 'response'" class="tab-pane">
-            <CodeBlock 
-              v-if="selectedLog.responseBody" 
-              :code="selectedLog.responseBody" 
+          <div v-if="activeTab === 'response'" class="tab-pane response-pane">
+            <CodeBlock
+              v-if="selectedLog.responseBody"
+              :code="selectedLog.responseBody"
               language="json"
+              max-height="100%"
             >
               <template #header>
-                 <button class="action-btn override-btn" @click="emit('open-override', selectedLog)">Use as Override</button>
+                <button
+                  class="action-btn override-btn"
+                  @click="emit('open-override', selectedLog)"
+                >
+                  Use as Override
+                </button>
               </template>
             </CodeBlock>
             <div v-else class="empty-pane">No response body</div>
@@ -323,33 +382,39 @@ const selectedMethods = ref<Set<string>>(new Set(["ALL"]));
 
 // Status code map for display
 const statusMap: Record<number, string> = {
-  200: "OK", 201: "Created", 204: "No Content",
-  301: "Moved Permanently", 304: "Not Modified",
-  400: "Bad Request", 401: "Unauthorized", 403: "Forbidden", 404: "Not Found",
+  200: "OK",
+  201: "Created",
+  204: "No Content",
+  301: "Moved Permanently",
+  304: "Not Modified",
+  400: "Bad Request",
+  401: "Unauthorized",
+  403: "Forbidden",
+  404: "Not Found",
   500: "Internal Server Error",
 };
 
-const selectedLog = computed(() => 
-  activityLog.find(l => l.id === selectedLogId.value)
+const selectedLog = computed(() =>
+  activityLog.find((l) => l.id === selectedLogId.value),
 );
 
 const tabs = computed(() => {
-  const queryCount = selectedLog.value?.queryParams 
-    ? Object.keys(selectedLog.value.queryParams).length 
+  const queryCount = selectedLog.value?.queryParams
+    ? Object.keys(selectedLog.value.queryParams).length
     : 0;
-  const pathCount = selectedLog.value?.pathParams 
-    ? Object.keys(selectedLog.value.pathParams).length 
+  const pathCount = selectedLog.value?.pathParams
+    ? Object.keys(selectedLog.value.pathParams).length
     : 0;
   const totalParamsCount = queryCount + pathCount;
-    
+
   return [
-    { id: 'general', label: 'General' },
-    { 
-      id: 'request', 
-      label: 'Request', 
-      count: totalParamsCount > 0 ? totalParamsCount : undefined 
+    { id: "general", label: "General" },
+    {
+      id: "request",
+      label: "Request",
+      count: totalParamsCount > 0 ? totalParamsCount : undefined,
     },
-    { id: 'response', label: 'Response' } 
+    { id: "response", label: "Response" },
   ];
 });
 
@@ -385,24 +450,26 @@ const filteredActivityLog = computed(() => {
     const matchesMethod =
       selectedMethods.value.has("ALL") ||
       selectedMethods.value.has(entry.method);
-    
+
     // Search by URL, Key (displayed), or Method
-    const matchesQuery = !query || 
-        entry.url.toLowerCase().includes(query) || 
-        displayKey(entry.key).toLowerCase().includes(query) ||
-        entry.method.toLowerCase().includes(query);
+    const matchesQuery =
+      !query ||
+      entry.url.toLowerCase().includes(query) ||
+      displayKey(entry.key).toLowerCase().includes(query) ||
+      entry.method.toLowerCase().includes(query);
 
     return matchesKey && matchesMethod && matchesQuery;
   });
 });
 
 watch(filteredActivityLog, (newLogs) => {
-    if (selectedLogId.value && !newLogs.find(l => l.id === selectedLogId.value)) {
-        selectedLogId.value = null;
-    }
+  if (
+    selectedLogId.value &&
+    !newLogs.find((l) => l.id === selectedLogId.value)
+  ) {
+    selectedLogId.value = null;
+  }
 });
-
-
 
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleTimeString(undefined, {
@@ -414,10 +481,15 @@ const formatTime = (timestamp: number) => {
 };
 
 const formatFullTime = (timestamp: number) => {
-    const d = new Date(timestamp);
-    const time = d.toLocaleTimeString(undefined, { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    const ms = String(d.getMilliseconds()).padStart(3, '0');
-    return `${time}.${ms}`;
+  const d = new Date(timestamp);
+  const time = d.toLocaleTimeString(undefined, {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  const ms = String(d.getMilliseconds()).padStart(3, "0");
+  return `${time}.${ms}`;
 };
 </script>
 
@@ -518,16 +590,35 @@ const formatFullTime = (timestamp: number) => {
 }
 
 .filter-chip.active {
-    background: var(--bg-tertiary); 
-    color: var(--text-main);
-    border-color: var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+  border-color: var(--border-color);
 }
-.filter-chip.active.get { color: var(--method-get-text); border-color: var(--method-get-border); background: var(--method-get-bg); }
-.filter-chip.active.post { color: var(--method-post-text); border-color: var(--method-post-border); background: var(--method-post-bg); }
-.filter-chip.active.put { color: var(--method-put-text); border-color: var(--method-put-border); background: var(--method-put-bg); }
-.filter-chip.active.delete { color: var(--method-delete-text); border-color: var(--method-delete-border); background: var(--method-delete-bg); }
-.filter-chip.active.all { color: var(--text-main); border-color: var(--border-color); background: var(--bg-tertiary); }
-
+.filter-chip.active.get {
+  color: var(--method-get-text);
+  border-color: var(--method-get-border);
+  background: var(--method-get-bg);
+}
+.filter-chip.active.post {
+  color: var(--method-post-text);
+  border-color: var(--method-post-border);
+  background: var(--method-post-bg);
+}
+.filter-chip.active.put {
+  color: var(--method-put-text);
+  border-color: var(--method-put-border);
+  background: var(--method-put-bg);
+}
+.filter-chip.active.delete {
+  color: var(--method-delete-text);
+  border-color: var(--method-delete-border);
+  background: var(--method-delete-bg);
+}
+.filter-chip.active.all {
+  color: var(--text-main);
+  border-color: var(--border-color);
+  background: var(--bg-tertiary);
+}
 
 .requests-count {
   font-size: 0.7rem;
@@ -629,9 +720,15 @@ const formatFullTime = (timestamp: number) => {
   border-radius: 50%;
   background-color: var(--text-tertiary);
 }
-.status-dot.success { background-color: #10b981; }
-.status-dot.warning { background-color: #f59e0b; }
-.status-dot.error { background-color: #ef4444; }
+.status-dot.success {
+  background-color: #10b981;
+}
+.status-dot.warning {
+  background-color: #f59e0b;
+}
+.status-dot.error {
+  background-color: #ef4444;
+}
 
 .status-code {
   font-size: 0.7rem;
@@ -640,24 +737,32 @@ const formatFullTime = (timestamp: number) => {
 }
 
 .source-label {
-    font-size: 0.7rem;
-    color: var(--text-tertiary);
-    text-align: right;
-    width: 100%;
-    margin-left: 0.5rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+  font-size: 0.7rem;
+  color: var(--text-tertiary);
+  text-align: right;
+  width: 100%;
+  margin-left: 0.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .native-tag {
-    opacity: 0.7;
-    font-size: 0.65rem;
+  opacity: 0.7;
+  font-size: 0.65rem;
 }
 
-.h-3 { height: 0.75rem; }
-.w-3 { width: 0.75rem; }
-.h-4 { height: 1rem; }
-.w-4 { width: 1rem; }
+.h-3 {
+  height: 0.75rem;
+}
+.w-3 {
+  width: 0.75rem;
+}
+.h-4 {
+  height: 1rem;
+}
+.w-4 {
+  width: 1rem;
+}
 
 /* Details Panel */
 .activity-details {
@@ -727,25 +832,48 @@ const formatFullTime = (timestamp: number) => {
 }
 
 .status-pill {
-    padding: 0.25rem 0.6rem;
-    border-radius: 4px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    background: var(--bg-tertiary);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-color);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
-.status-pill.success { background-color: #dcfce7; color: #166534; border-color: #bbf7d0; }
-.status-pill.warning { background-color: #fef3c7; color: #92400e; border-color: #fde68a; }
-.status-pill.error { background-color: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.status-pill.success {
+  background-color: #dcfce7;
+  color: #166534;
+  border-color: #bbf7d0;
+}
+.status-pill.warning {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.status-pill.error {
+  background-color: #fee2e2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
 
 /* Dark mode overrides for status pill (basic attempt based on possible classes, 
    though variables would be better if we had semantic color vars) */
-:global(.theme-dark) .status-pill.success { background-color: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: rgba(34, 197, 94, 0.3); }
-:global(.theme-dark) .status-pill.warning { background-color: rgba(245, 158, 11, 0.2); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-:global(.theme-dark) .status-pill.error { background-color: rgba(239, 68, 68, 0.2); color: #f87171; border-color: rgba(239, 68, 68, 0.3); }
-
+:global(.theme-dark) .status-pill.success {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+:global(.theme-dark) .status-pill.warning {
+  background-color: rgba(245, 158, 11, 0.2);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+:global(.theme-dark) .status-pill.error {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
 
 .details-tabs {
   display: flex;
@@ -795,6 +923,19 @@ const formatFullTime = (timestamp: number) => {
   flex: 1;
   overflow-y: auto;
   padding: 2rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.response-pane {
+  height: 100%;
 }
 
 .details-section {
@@ -841,7 +982,8 @@ const formatFullTime = (timestamp: number) => {
   background-color: var(--bg-tertiary);
 }
 
-.col-key, .col-value {
+.col-key,
+.col-value {
   padding: 0.75rem 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -874,8 +1016,14 @@ const formatFullTime = (timestamp: number) => {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .info-grid {
@@ -891,7 +1039,7 @@ const formatFullTime = (timestamp: number) => {
   border-radius: 8px;
 }
 .info-card.full-width {
-    grid-column: span 2;
+  grid-column: span 2;
 }
 
 .info-card label {
@@ -929,54 +1077,54 @@ const formatFullTime = (timestamp: number) => {
   cursor: pointer;
   display: block;
 }
-.link-btn:hover { text-decoration: underline; }
-
-.source-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-weight: 600;
+.link-btn:hover {
+  text-decoration: underline;
 }
 
-
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
 
 .pane-actions {
-    margin-bottom: 1rem;
-    display: flex;
-    gap: 0.75rem;
+  margin-bottom: 1rem;
+  display: flex;
+  gap: 0.75rem;
 }
 
 .action-btn {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    padding: 0.4rem 0.8rem;
-    border-radius: 6px;
-    font-size: 0.75rem;
-    cursor: pointer;
-    font-weight: 600;
-    transition: all 0.2s;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
 }
 .override-btn {
-    margin-left: auto;
-    margin-right: 0.5rem;
-    padding: 0.2rem 0.6rem;
-    font-size: 0.7rem;
+  margin-left: auto;
+  margin-right: 0.5rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.7rem;
 }
 .action-btn:hover {
-    background: var(--bg-tertiary);
-    color: var(--text-main);
-    border-color: var(--text-tertiary);
+  background: var(--bg-tertiary);
+  color: var(--text-main);
+  border-color: var(--text-tertiary);
 }
 
 .empty-pane {
-    color: var(--text-tertiary);
-    font-style: italic;
-    text-align: center;
-    padding: 3rem;
-    background: var(--bg-secondary);
-    border-radius: 8px;
-    border: 1px dashed var(--border-color);
+  color: var(--text-tertiary);
+  font-style: italic;
+  text-align: center;
+  padding: 3rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px dashed var(--border-color);
 }
 
 .params-grid {

@@ -15,13 +15,17 @@
         </button>
       </div>
     </div>
-    <pre><code :class="language">{{ displayCode }}</code></pre>
+    <pre
+      :style="{
+        maxHeight: props.maxHeight,
+        overflowY: props.maxHeight ? 'auto' : undefined,
+      }"
+    ><code :class="language">{{ displayCode }}</code></pre>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref, watch } from "vue";
-
 
 const props = withDefaults(
   defineProps<{
@@ -29,6 +33,7 @@ const props = withDefaults(
     language?: string;
     label?: string;
     copyButton?: boolean;
+    maxHeight?: string;
   }>(),
   {
     language: "json",
@@ -37,59 +42,60 @@ const props = withDefaults(
 );
 
 const isCopied = ref(false);
-const displayCode = ref(""); 
+const displayCode = ref("");
 
 const updateCodeDisplay = () => {
-    let rawCode = "";
-    
-    if (props.code === undefined || props.code === null) {
-        displayCode.value = "";
-        return;
-    }
+  let rawCode = "";
 
-    if (typeof props.code === "string") {
-        try {
-             if (props.language === "json") {
-                 const parsed = JSON.parse(props.code);
-                 rawCode = JSON.stringify(parsed, null, 2);
-             } else {
-                 rawCode = props.code;
-             }
-        } catch {
-            rawCode = props.code;
-        }
-    } else {
-        rawCode = JSON.stringify(props.code, null, 2);
+  if (props.code === undefined || props.code === null) {
+    displayCode.value = "";
+    return;
+  }
+
+  if (typeof props.code === "string") {
+    try {
+      if (props.language === "json") {
+        const parsed = JSON.parse(props.code);
+        rawCode = JSON.stringify(parsed, null, 2);
+      } else {
+        rawCode = props.code;
+      }
+    } catch {
+      rawCode = props.code;
     }
-    
-    displayCode.value = rawCode;
+  } else {
+    rawCode = JSON.stringify(props.code, null, 2);
+  }
+
+  displayCode.value = rawCode;
 };
 
 onMounted(() => {
   updateCodeDisplay();
 });
 
-watch(() => [props.code, props.language], () => {
-  updateCodeDisplay();
-});
-
-
+watch(
+  () => [props.code, props.language],
+  () => {
+    updateCodeDisplay();
+  },
+);
 
 const copyContent = async () => {
   try {
     let textToCopy = "";
     if (typeof props.code === "object") {
-        textToCopy = JSON.stringify(props.code, null, 2);
+      textToCopy = JSON.stringify(props.code, null, 2);
     } else {
-         try {
-             if (props.language === 'json') {
-                 textToCopy = JSON.stringify(JSON.parse(props.code || ""), null, 2);
-             } else {
-                 textToCopy = props.code || "";
-             }
-         } catch {
-             textToCopy = props.code || "";
-         }
+      try {
+        if (props.language === "json") {
+          textToCopy = JSON.stringify(JSON.parse(props.code || ""), null, 2);
+        } else {
+          textToCopy = props.code || "";
+        }
+      } catch {
+        textToCopy = props.code || "";
+      }
     }
 
     await navigator.clipboard.writeText(textToCopy);
@@ -110,6 +116,10 @@ const copyContent = async () => {
   border: 1px solid var(--border-color);
   overflow: hidden;
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 .code-header {
@@ -165,6 +175,7 @@ pre {
   line-height: 1.5;
   background: var(--bg-secondary);
   color: var(--text-main);
+  flex: 1;
 }
 
 code {
@@ -172,4 +183,3 @@ code {
   padding: 0 !important;
 }
 </style>
-
