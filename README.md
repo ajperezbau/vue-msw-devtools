@@ -44,26 +44,12 @@ await worker.start();
 if (process.env.NODE_ENV === "development") {
   app.use(MswDevtoolsPlugin, {
     worker, // required
-    // Optional: add handlers that shouldn't be controlled by the UI
-    baseHandlers: [],
-    // Optional: resolve dynamic URLs (e.g. removing IDs) to group them
-    urlResolver: (url) => url.replace(/\/\d+/g, "/:id"),
+    // Optional: useful to modify the URLs as needed
+    urlResolver: (url) => new URL(url, "https://some-base-url").toString(),
   });
 }
 
 app.mount("#app");
-```
-
-### Advanced Usage
-
-If you prefer to keep MSW initialization separate, you can call `setupMswRegistry` directly and still pass the worker to the plugin:
-
-```typescript
-import { setupMswRegistry, MswDevtoolsPlugin } from "msw-devtools-plugin";
-
-// ... setup worker
-setupMswRegistry(worker);
-app.use(MswDevtoolsPlugin, { worker }); // worker is required
 ```
 
 ### Zero Config Discovery

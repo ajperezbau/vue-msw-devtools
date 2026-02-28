@@ -20,7 +20,7 @@ export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions> = {
       return;
     }
 
-    setupMswRegistry(opts.worker, opts.baseHandlers, opts.urlResolver);
+    setupMswRegistry(opts.worker, opts.urlResolver);
 
     if (document.getElementById("msw-devtools-plugin-root")) return;
 
