@@ -8,7 +8,14 @@ import dts from "vite-plugin-dts";
 export default defineConfig({
   plugins: [
     vue(),
-    cssInjectedByJsPlugin(),
+    cssInjectedByJsPlugin({
+      // Store CSS in a global variable so index.ts can inject it into the
+      // Shadow DOM root, preventing any style leakage in/out of the devtools.
+      injectCodeFunction: (cssCode: string) => {
+        (globalThis as Record<string, unknown>)["__MSW_DEVTOOLS_CSS__"] =
+          cssCode;
+      },
+    }),
     dts({
       insertTypesEntry: true,
       staticImport: true,
