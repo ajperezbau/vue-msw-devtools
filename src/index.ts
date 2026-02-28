@@ -6,7 +6,7 @@ import type { MswDevtoolsOptions } from "./types";
 export * from "./mswRegistry";
 export { MswDevtools };
 
-export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions[]> = {
+export const MswDevtoolsPlugin: Plugin<MswDevtoolsOptions> = {
   install(_app, options) {
     if (typeof window === "undefined") return;
 
