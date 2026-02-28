@@ -1,4 +1,4 @@
-# MSW Devtools Plugin
+# Vue MSW DevTools
 
 A powerful browser-based UI for managing [Mock Service Worker (MSW)](https://mswjs.io/) handlers in Vue 3 applications. This library allows you to dynamically switch between different response scenarios, override responses on the fly, and inspect network activity handled by MSW.
 
@@ -17,9 +17,9 @@ A powerful browser-based UI for managing [Mock Service Worker (MSW)](https://msw
 ## Installation
 
 ```bash
-npm install msw-devtools-plugin
+npm install @ajperezbau/vue-msw-devtools
 # or
-pnpm add msw-devtools-plugin
+pnpm add @ajperezbau/vue-msw-devtools
 ```
 
 ## Setup
@@ -31,7 +31,7 @@ You can integrate the devtools with a single line in your application entry poin
 ```typescript
 import { createApp } from "vue";
 import { setupWorker } from "msw/browser";
-import { MswDevtoolsPlugin } from "msw-devtools-plugin";
+import { MswDevtoolsPlugin } from "@ajperezbau/vue-msw-devtools";
 import App from "./App.vue";
 
 const app = createApp(App);
@@ -67,7 +67,7 @@ No changes are needed to your existing MSW code beyond the initial setup!
 Use `defineHandlers` to create handlers with multiple scenarios, then pass them to your MSW worker.
 
 ```typescript
-import { defineHandlers } from "msw-devtools-plugin";
+import { defineHandlers } from "@ajperezbau/vue-msw-devtools";
 import { setupWorker } from "msw/browser";
 import { HttpResponse } from "msw";
 
@@ -130,7 +130,7 @@ Sometimes you want to set the state of multiple handlers at once to replicate a 
 Use `definePresets` to register predefined configurations.
 
 ```typescript
-import { definePresets } from "msw-devtools-plugin";
+import { definePresets } from "@ajperezbau/vue-msw-devtools";
 
 definePresets([
   {
