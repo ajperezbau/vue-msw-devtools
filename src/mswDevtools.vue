@@ -179,7 +179,7 @@
           <div class="reset-menu-container" ref="resetMenuContainer">
             <MswButton
               type="button"
-              @click="showResetMenu = !showResetMenu"
+              @click.stop="showResetMenu = !showResetMenu"
               class="reset-button"
               :class="{ 'menu-open': showResetMenu }"
               title="Reset options"
