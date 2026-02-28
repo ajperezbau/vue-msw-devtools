@@ -1,0 +1,62 @@
+name: Publish Package on Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # Fundamental para usar npm provenance (mayor seguridad)
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 1. Configuración de pnpm (basado en tu playwright.yml)
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      # 2. Configuración de Node con caché de pnpm y registro de npm
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "pnpm"
+          registry-url: "https://registry.npmjs.org"
+
+      # 3. Instalación estricta de dependencias
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # 4. Preparación y ejecución de tests con Playwright
+      - name: Install Playwright Chromium only
+        run: pnpm exec playwright install chromium --with-deps
+
+      - name: Run Playwright tests
+        run: pnpm test
+
+      # 5. Construcción del paquete (vue-tsc -b && vite build)
+      - name: Build package
+        run: pnpm build
+
+      # 6. Verificación de seguridad: package.json === Release Tag
+      - name: Verify Version Match
+        run: |
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          TAG_VERSION=${GITHUB_REF#refs/tags/v} 
+
+          if [ "$PACKAGE_VERSION" != "$TAG_VERSION" ]; then
+            echo "Error: La versión en package.json ($PACKAGE_VERSION) no coincide con el tag de la release ($TAG_VERSION)"
+            exit 1
+          fi
+
+      # 7. Publicación en npm
+      - name: Publish to npm
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
