@@ -109,6 +109,9 @@ test.describe("MSW DevTools - Activity Log", () => {
       await devToolsPage.toggle();
       await devToolsPage.switchTab("Activity Log");
 
+      // Wait for both requests to be logged before filtering
+      await devToolsPage.expectRequestCount(2);
+
       // Click GET filter
       await devToolsPage.clickMethodFilter("GET");
 
@@ -131,6 +134,9 @@ test.describe("MSW DevTools - Activity Log", () => {
       // Open DevTools and switch to Activity Log
       await devToolsPage.toggle();
       await devToolsPage.switchTab("Activity Log");
+
+      // Wait for both requests to be logged before filtering
+      await devToolsPage.expectRequestCount(2);
 
       // Click POST filter
       await devToolsPage.clickMethodFilter("POST");
@@ -155,6 +161,9 @@ test.describe("MSW DevTools - Activity Log", () => {
       await devToolsPage.toggle();
       await devToolsPage.switchTab("Activity Log");
 
+      // Wait for both requests to be logged before filtering
+      await devToolsPage.expectRequestCount(2);
+
       // Click GET and POST filters
       await devToolsPage.clickMethodFilter("GET");
       await devToolsPage.clickMethodFilter("POST");
@@ -171,6 +180,9 @@ test.describe("MSW DevTools - Activity Log", () => {
       // Open DevTools and switch to Activity Log
       await devToolsPage.toggle();
       await devToolsPage.switchTab("Activity Log");
+
+      // Wait for both requests to be logged before filtering
+      await devToolsPage.expectRequestCount(2);
 
       // Select GET filter, then deselect it
       await devToolsPage.clickMethodFilter("GET");
@@ -274,7 +286,9 @@ test.describe("MSW DevTools - Activity Log", () => {
 
       // Verify timestamp label and value exist
       await expect(devToolsPage.dialog.getByText("Timestamp")).toBeVisible();
-      await expect(devToolsPage.dialog.locator(".info-value.big")).toContainText(/\d{2}:\d{2}:\d{2}/);
+      await expect(
+        devToolsPage.dialog.locator(".info-value.big"),
+      ).toContainText(/\d{2}:\d{2}:\d{2}/);
     });
 
     test("should display source scenario in General tab", async () => {
@@ -484,6 +498,112 @@ test.describe("MSW DevTools - Activity Log", () => {
       await expect(
         devToolsPage.dialog.getByRole("button", { name: /View in Registry/ }),
       ).toBeVisible();
+    });
+
+    test("should filter registry when clicking 'View in Registry'", async () => {
+      // Trigger a request
+      await devToolsPage.fetchUsersButton.click();
+      await devToolsPage.fetchProductsButton.click();
+
+      // Open DevTools and switch to Activity Log
+      await devToolsPage.toggle();
+      await devToolsPage.switchTab("Activity Log");
+
+      // Select log entry (users)
+      await devToolsPage.selectLogEntry("users");
+
+      // Click "View in Registry"
+      await devToolsPage.dialog
+        .getByRole("button", { name: /View in Registry/ })
+        .click();
+
+      // Should be in Registry tab
+      await expect(
+        devToolsPage.dialog.getByRole("button", {
+          name: "Registry",
+          exact: true,
+        }),
+      ).toHaveClass(/active/);
+
+      // Verify the filter banner is visible with the correct handler name
+      await expect(
+        devToolsPage.dialog.getByText(/Viewing handler:.*users/i),
+      ).toBeVisible();
+
+      // Verify the method badge is visible in the banner
+      await expect(
+        devToolsPage.dialog.locator(".filter-banner .msw-badge"),
+      ).toContainText("GET");
+
+      // Table should show the handler and NOT the 'No handlers found' message
+      await expect(
+        devToolsPage.registryTable.getByText("No handlers found"),
+      ).not.toBeVisible();
+
+      // The 'users' row should be visible
+      const usersRow = await devToolsPage.getHandlerRow("users");
+      await expect(usersRow).toBeVisible();
+
+      // The 'products' row should NOT be visible
+      const productsRow = await devToolsPage.getHandlerRow("products");
+      await expect(productsRow).not.toBeVisible();
+
+      // Click "Clear" on the banner
+      await devToolsPage.dialog.getByRole("button", { name: "Clear" }).click();
+
+      // Banner should disappear
+      await expect(
+        devToolsPage.dialog.getByText(/Viewing handler:/),
+      ).not.toBeVisible();
+
+      // Both handlers should be visible again
+      await expect(await devToolsPage.getHandlerRow("users")).toBeVisible();
+      await expect(await devToolsPage.getHandlerRow("products")).toBeVisible();
+    });
+
+    test("should show displayKey in Activity Log filter banner when navigated from Registry", async () => {
+      // Trigger a request
+      await devToolsPage.fetchUsersButton.click();
+
+      // Open DevTools
+      await devToolsPage.toggle();
+
+      // Go to Registry
+      await devToolsPage.switchTab("Registry");
+
+      // Click "View logs for this handler" for 'users'
+      const usersRow = await devToolsPage.getHandlerRow("users");
+      await usersRow
+        .getByRole("button", { name: "View logs for this handler" })
+        .click();
+
+      // Should be in Activity Log tab
+      await expect(
+        devToolsPage.dialog.getByRole("button", {
+          name: "Activity Log",
+          exact: false,
+        }),
+      ).toHaveClass(/active/);
+
+      // Verify the filter banner is visible with the display version of the key
+      // 'users' displayKey is likely 'users' if not modified, but we check if it shows "Filter: users"
+      await expect(
+        devToolsPage.dialog.getByText(/Filter:.*users/i),
+      ).toBeVisible();
+
+      // Verify the method badge is visible in the activity log filter banner
+      await expect(
+        devToolsPage.dialog.locator(".filter-banner .msw-badge"),
+      ).toContainText("GET");
+
+      // Click "Reset" on the banner
+      await devToolsPage.dialog
+        .locator(".filter-banner")
+        .getByRole("button", { name: "Reset" })
+        .click();
+
+      // Banner should disappear
+      await expect(devToolsPage.dialog.getByText(/Filter:/)).not.toBeVisible();
     });
 
     test("should show 'Use as Override' button in Response tab", async () => {
