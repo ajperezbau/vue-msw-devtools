@@ -294,7 +294,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import MswButton from "./components/MswButton.vue";
 import MswToggle from "./components/MswToggle.vue";
 import RegistryView from "./components/RegistryView.vue";
@@ -362,11 +362,10 @@ const viewLogForKey = (key: string) => {
   activeTab.value = "log";
 };
 
-const viewHandlerForKey = (key: string) => {
+const viewHandlerForKey = async (key: string) => {
   activeTab.value = "registry";
-  requestAnimationFrame(() => {
-    registryViewRef.value?.setFilter(key);
-  });
+  await nextTick();
+  registryViewRef.value?.setFilter(key);
 };
 
 const formatBody = (body: unknown) => {
