@@ -9,7 +9,7 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
     await devToolsPage.goto();
     // Clear any persisted passthrough state before each test
     await page.evaluate(() => {
-      localStorage.removeItem("msw-global-passthrough");
+      localStorage.removeItem("msw-passthrough-snapshot");
     });
     await devToolsPage.toggle();
   });
@@ -24,7 +24,7 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
       name: "Toggle Global Passthrough",
     });
     await globalPassthroughBtn.click();
-    await expect(globalPassthroughBtn).toHaveAttribute("aria-pressed", "true");
+    await expect(globalPassthroughBtn).toHaveClass(/active/);
 
     // Close devtools, trigger a fetch, then re-open to check Activity Log
     await devToolsPage.close();
@@ -69,7 +69,7 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
       name: "Toggle Global Passthrough",
     });
     await globalPassthroughBtn.click();
-    await expect(globalPassthroughBtn).toHaveAttribute("aria-pressed", "true");
+    await expect(globalPassthroughBtn).toHaveClass(/active/);
 
     // The delay input for 'users' (which is on 'default' scenario) should be disabled
     const usersRow = await devToolsPage.getHandlerRow("users");
@@ -77,7 +77,7 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
 
     // Deactivate global passthrough
     await globalPassthroughBtn.click();
-    await expect(globalPassthroughBtn).toHaveAttribute("aria-pressed", "false");
+    await expect(globalPassthroughBtn).not.toHaveClass(/active/);
 
     // Delay input should be re-enabled
     await expect(usersRow.getByRole("spinbutton")).not.toBeDisabled();
@@ -122,7 +122,7 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
       name: "Toggle Global Passthrough",
     });
     await globalPassthroughBtn.click();
-    await expect(globalPassthroughBtn).toHaveAttribute("aria-pressed", "true");
+    await expect(globalPassthroughBtn).toHaveClass(/active/);
 
     // Activate record passthrough
     const recordBtn = dialog.getByRole("button", {
@@ -143,11 +143,11 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
     // Re-open devtools
     await devToolsPage.toggle();
 
-    // Global passthrough should still be active (persisted)
+    // Global passthrough should still be active (persisted via msw-scenarios)
     const globalBtnAfterReload = dialog.getByRole("button", {
       name: "Toggle Global Passthrough",
     });
-    await expect(globalBtnAfterReload).toHaveAttribute("aria-pressed", "true");
+    await expect(globalBtnAfterReload).toHaveClass(/active/);
 
     // Record Passthrough button should be visible but NOT active (ephemeral reset)
     const recordBtnAfterReload = dialog.getByRole("button", {
