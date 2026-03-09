@@ -30,6 +30,54 @@ const OVERRIDES_KEY = "msw-overrides";
 const CUSTOM_SCENARIOS_KEY = "msw-custom-scenarios";
 const CUSTOM_PRESETS_KEY = "msw-custom-presets";
 
+// Normalize legacy storage data on plugin load
+const normalizeStorageData = () => {
+  try {
+    // Normalize scenarios
+    const storedScenarios = localStorage.getItem(STORAGE_KEY);
+    if (storedScenarios) {
+      const scenarios = JSON.parse(storedScenarios);
+      let hasChanges = false;
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(scenarios)) {
+        if (value === "original") {
+          normalized[key] = "default";
+          hasChanges = true;
+        } else {
+          normalized[key] = value as string;
+        }
+      }
+      if (hasChanges) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      }
+    }
+
+    // Normalize presets
+    const storedPresets = localStorage.getItem(CUSTOM_PRESETS_KEY);
+    if (storedPresets) {
+      const presets = JSON.parse(storedPresets) as Array<{
+        name: string;
+        scenarios: Record<string, string>;
+      }>;
+      let hasChanges = false;
+      for (const preset of presets) {
+        for (const [key, value] of Object.entries(preset.scenarios)) {
+          if (value === "original") {
+            preset.scenarios[key] = "default";
+            hasChanges = true;
+          }
+        }
+      }
+      if (hasChanges) {
+        localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+      }
+    }
+  } catch {
+    // Ignore errors on normalization
+  }
+};
+normalizeStorageData();
+
 const getPersistedScenarios = (): Record<string, string> => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -167,7 +215,7 @@ const registerInternal = (config: {
 
   const originalScenarios = Object.keys(scenarios);
 
-  // Registrar metadatos
+  // Register metadata
   scenarioRegistry[key] = {
     url,
     method: method.toUpperCase(),
@@ -176,20 +224,23 @@ const registerInternal = (config: {
     scenarios: [
       ...originalScenarios,
       ...Object.keys(customScenarios[key] || {}),
-    ].filter((v, i, a) => a.indexOf(v) === i), // Unificar y evitar duplicados
+    ].filter((v, i, a) => a.indexOf(v) === i), // Merge and avoid duplicates
   };
 
-  // Inicializar estado si no existe (URL tiene prioridad sobre persistencia)
+  // Initialize state if missing (URL has priority over persistence)
   const urlParams = new URLSearchParams(window.location.search);
   const urlValue = urlParams.get(key);
 
   if (urlValue) {
     scenarioState[key] = urlValue;
-  } else if (!scenarioState[key]) {
+  } else if (scenarioState[key]) {
+    // Already normalized in normalizeStorageData()
+    scenarioState[key] = scenarioState[key];
+  } else {
     scenarioState[key] = effectiveDefault;
   }
 
-  // Inicializar delay si no existe
+  // Initialize delay if missing
   if (handlerDelays[key] === undefined) {
     handlerDelays[key] = 0;
   }
@@ -233,7 +284,7 @@ const registerInternal = (config: {
         });
 
         if (recordPassthrough.value) {
-          // MODO GRABACIÓN: Usamos bypass() para capturar la respuesta
+          // RECORDING MODE: Use bypass() to capture the response
           try {
             const proxyRequest = request.clone();
             const realResponse = await fetch(bypass(proxyRequest));
@@ -279,7 +330,7 @@ const registerInternal = (config: {
             });
           }
         } else {
-          // MODO LIMPIO: Usamos passthrough() nativo
+          // CLEAN MODE: Use native passthrough()
           activityLog.unshift({
             id: Math.random().toString(36).substring(2),
             timestamp: Date.now(),
@@ -539,7 +590,7 @@ export const applyPreset = (presetName: string) => {
   const preset = allPresets.find((p) => p.name === presetName);
   if (preset) {
     Object.entries(preset.scenarios).forEach(([key, scenario]) => {
-      // Solo aplicar si el handler existe
+      // Apply only if the handler exists
       if (scenarioRegistry[key]) {
         scenarioState[key] = scenario;
       }

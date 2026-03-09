@@ -83,33 +83,61 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
     await expect(usersRow.getByRole("spinbutton")).not.toBeDisabled();
   });
 
-  test("should show Record Passthrough button only when Global Passthrough is active or a handler is in passthrough", async () => {
+  test("should set all handlers to passthrough and restore previous scenarios when toggled off", async () => {
     const dialog = devToolsPage.dialog;
 
-    // Record button should NOT be visible initially
-    const recordBtn = dialog.getByRole("button", {
-      name: "Toggle Record Passthrough",
-    });
-    await expect(recordBtn).not.toBeVisible();
+    const usersRow = await devToolsPage.getHandlerRow("users");
+    const productsRow = await devToolsPage.getHandlerRow("products");
 
-    // Activate global passthrough - record button should appear
+    const usersSelect = usersRow.getByRole("combobox");
+    const productsSelect = productsRow.getByRole("combobox");
+
+    await devToolsPage.selectScenario("users", "empty");
+    await expect(usersSelect).toHaveValue("empty");
+    await expect(productsSelect).toHaveValue("default");
+
     const globalPassthroughBtn = dialog.getByRole("button", {
       name: "Toggle Global Passthrough",
     });
     await globalPassthroughBtn.click();
-    await expect(recordBtn).toBeVisible();
 
-    // Deactivate global passthrough - record button should disappear
+    await expect(usersSelect).toHaveValue("passthrough");
+    await expect(productsSelect).toHaveValue("passthrough");
+
     await globalPassthroughBtn.click();
-    await expect(recordBtn).not.toBeVisible();
 
-    // Set a handler to passthrough scenario - record button should appear
-    await devToolsPage.selectScenario("users", "passthrough");
+    await expect(usersSelect).toHaveValue("empty");
+    await expect(productsSelect).toHaveValue("default");
+  });
+
+  test("should disable Record Passthrough button when no handlers are in passthrough", async () => {
+    const dialog = devToolsPage.dialog;
+
+    // Record button should be disabled initially
+    const recordBtn = dialog.getByRole("button", {
+      name: "Toggle Record Passthrough",
+    });
     await expect(recordBtn).toBeVisible();
+    await expect(recordBtn).toBeDisabled();
 
-    // Reset handler - record button should disappear
+    // Activate global passthrough - record button should be enabled
+    const globalPassthroughBtn = dialog.getByRole("button", {
+      name: "Toggle Global Passthrough",
+    });
+    await globalPassthroughBtn.click();
+    await expect(recordBtn).toBeEnabled();
+
+    // Deactivate global passthrough - record button should disable
+    await globalPassthroughBtn.click();
+    await expect(recordBtn).toBeDisabled();
+
+    // Set a handler to passthrough scenario - record button should enable
+    await devToolsPage.selectScenario("users", "passthrough");
+    await expect(recordBtn).toBeEnabled();
+
+    // Reset handler - record button should disable
     await devToolsPage.selectScenario("users", "default");
-    await expect(recordBtn).not.toBeVisible();
+    await expect(recordBtn).toBeDisabled();
   });
 
   test("Record Passthrough should be ephemeral and not persist after page reload", async ({

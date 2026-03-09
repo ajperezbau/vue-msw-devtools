@@ -408,6 +408,85 @@ test.describe("MSW DevTools - Activity Log", () => {
     });
   });
 
+  test.describe("Passthrough Response Handling", () => {
+    test("should show passthrough notice without record mode", async ({
+      page,
+    }) => {
+      await page.evaluate(() => {
+        localStorage.removeItem("msw-passthrough-snapshot");
+      });
+
+      await devToolsPage.toggle();
+      const globalPassthroughBtn = devToolsPage.dialog.getByRole("button", {
+        name: "Toggle Global Passthrough",
+      });
+      await globalPassthroughBtn.click();
+      await expect(globalPassthroughBtn).toHaveClass(/active/);
+
+      await devToolsPage.close();
+      await devToolsPage.fetchUsersButton.click();
+
+      await devToolsPage.toggle();
+      await devToolsPage.switchTab("Activity Log");
+
+      const logEntry = await devToolsPage.getLogEntry("users");
+      await expect(logEntry).toContainText("REAL API");
+
+      await devToolsPage.selectLogEntry("users");
+      await devToolsPage.switchToTab("Response");
+
+      await expect(
+        devToolsPage.dialog.getByText("Request sent to the real network."),
+      ).toBeVisible();
+      await expect(
+        devToolsPage.dialog.getByText("enable the record mode"),
+      ).toBeVisible();
+      await expect(
+        devToolsPage.dialog.getByRole("button", { name: "Use as Override" }),
+      ).not.toBeVisible();
+    });
+
+    test("should show response body when record mode is enabled", async ({
+      page,
+    }) => {
+      await page.evaluate(() => {
+        localStorage.removeItem("msw-passthrough-snapshot");
+      });
+
+      await devToolsPage.toggle();
+      const globalPassthroughBtn = devToolsPage.dialog.getByRole("button", {
+        name: "Toggle Global Passthrough",
+      });
+      await globalPassthroughBtn.click();
+      await expect(globalPassthroughBtn).toHaveClass(/active/);
+
+      const recordBtn = devToolsPage.dialog.getByRole("button", {
+        name: "Toggle Record Passthrough",
+      });
+      await recordBtn.click();
+      await expect(recordBtn).toHaveAttribute("aria-pressed", "true");
+
+      await devToolsPage.close();
+      await devToolsPage.fetchUsersButton.click();
+
+      await devToolsPage.toggle();
+      await devToolsPage.switchTab("Activity Log");
+
+      const logEntry = await devToolsPage.getLogEntry("users");
+      await expect(logEntry).toContainText("REAL API");
+
+      await devToolsPage.selectLogEntry("users");
+      await devToolsPage.switchToTab("Response");
+
+      await expect(
+        devToolsPage.dialog.getByRole("button", { name: "Use as Override" }),
+      ).toBeVisible();
+      await expect(
+        devToolsPage.dialog.getByText("Request sent to the real network."),
+      ).not.toBeVisible();
+    });
+  });
+
   test.describe("Clear Logs Button", () => {
     test("should clear all logs when clicked", async () => {
       // Trigger multiple requests

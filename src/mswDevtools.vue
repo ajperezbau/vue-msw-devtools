@@ -18,67 +18,43 @@
     >
       <div class="panel-header">
         <h2 id="msw-devtools-title" class="panel-title">MSW Devtools</h2>
-        <div class="tab-buttons">
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'registry'"
-            class="tab-button"
-            :class="{ active: activeTab === 'registry' }"
-          >
-            Registry
-          </MswButton>
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'presets'"
-            class="tab-button"
-            :class="{ active: activeTab === 'presets' }"
-          >
-            Presets
-          </MswButton>
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'log'"
-            class="tab-button"
-            :class="{ active: activeTab === 'log' }"
-          >
-            Activity Log ({{ activityLog.length }})
-          </MswButton>
-        </div>
-        <div class="panel-actions">
-          <MswButton
-            v-if="passthroughStatus !== 'none'"
-            type="button"
-            variant="icon"
-            @click="recordPassthrough = !recordPassthrough"
-            class="record-toggle"
-            :class="{ 'record-active': recordPassthrough }"
-            :aria-pressed="recordPassthrough"
-            title="Record real API responses (Note: This will duplicate requests in the Network tab)"
-            aria-label="Toggle Record Passthrough"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              class="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <circle cx="12" cy="12" r="8" fill="currentColor" />
-            </svg>
-          </MswButton>
-          <div class="button-group passthrough-group">
+        <div class="tab-bar">
+          <div class="tab-buttons">
             <MswButton
               type="button"
-              variant="icon"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'registry'"
+              class="tab-button"
+              :class="{ active: activeTab === 'registry' }"
+            >
+              Registry
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'presets'"
+              class="tab-button"
+              :class="{ active: activeTab === 'presets' }"
+            >
+              Presets
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'log'"
+              class="tab-button"
+              :class="{ active: activeTab === 'log' }"
+            >
+              Activity Log ({{ activityLog.length }})
+            </MswButton>
+          </div>
+          <div class="action-group">
+            <MswButton
+              type="button"
+              variant="ghost"
               @click="toggleGlobalPassthrough"
               class="passthrough-toggle"
               :class="{
@@ -119,8 +95,48 @@
                   stroke="currentColor"
                 />
               </svg>
+              <span class="passthrough-text">
+                {{
+                  passthroughStatus === "all"
+                    ? "Real API"
+                    : passthroughStatus === "some"
+                      ? "Mixed"
+                      : "Mocked"
+                }}
+              </span>
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="icon"
+              size="sm"
+              @click="recordPassthrough = !recordPassthrough"
+              class="record-toggle"
+              :class="{ 'record-active': recordPassthrough }"
+              :disabled="passthroughStatus === 'none'"
+              :aria-pressed="recordPassthrough"
+              :title="
+                passthroughStatus === 'none'
+                  ? 'Enable passthrough mode to record API responses'
+                  : 'Record real API responses (Note: This will duplicate requests in the Network tab)'
+              "
+              aria-label="Toggle Record Passthrough"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="8" fill="currentColor" />
+              </svg>
             </MswButton>
           </div>
+        </div>
+        <div class="panel-actions">
           <MswButton
             type="button"
             variant="icon"
@@ -238,14 +254,6 @@
               </svg>
             </MswButton>
           </div>
-          <MswButton
-            v-if="activeTab === 'log'"
-            type="button"
-            @click="clearActivityLog"
-            title="Clear log"
-          >
-            Clear Log
-          </MswButton>
           <input
             type="file"
             ref="importFile"
@@ -381,7 +389,6 @@ import PresetsView from "./components/PresetsView.vue";
 import RegistryView from "./components/RegistryView.vue";
 import {
   activityLog,
-  clearActivityLog,
   customOverrides,
   customPresets,
   customScenarios,
@@ -914,10 +921,18 @@ watch(isOpen, (newValue) => {
   margin: 0;
 }
 
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 1.5rem;
+  flex: 1;
+}
+
 .tab-buttons {
   display: flex;
   gap: 0.5rem;
-  margin: 0 1.5rem;
+  margin: 0;
   background-color: var(--bg-tertiary);
   padding: 0.25rem;
   border-radius: 0.75rem;
@@ -986,8 +1001,32 @@ watch(isOpen, (newValue) => {
   color: #f59e0b;
 }
 
+.action-group {
+  display: flex;
+  gap: 0.25rem;
+  background-color: var(--bg-tertiary);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  align-items: center;
+}
+
 .passthrough-toggle {
   --button-tint: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.passthrough-toggle.msw-button:not(.active):not(.partial) {
+  color: var(--text-tertiary);
+}
+
+.passthrough-text {
+  white-space: nowrap;
 }
 
 .passthrough-toggle.msw-button.active,
@@ -997,19 +1036,34 @@ watch(isOpen, (newValue) => {
   color: white;
 }
 
+.passthrough-toggle.msw-button:not(.active):not(.partial):hover {
+  color: white;
+}
+
 .passthrough-toggle.msw-button.partial {
   color: var(--button-tint);
   border-color: var(--button-tint);
+}
+
+.passthrough-toggle.msw-button.partial:hover {
+  background-color: var(--button-tint);
+  border-color: var(--button-tint);
+  color: white;
 }
 
 .record-toggle {
   --button-tint: #ef4444;
 }
 
-.record-toggle.msw-button:hover,
+.record-toggle.msw-button:not(:disabled):hover,
 .record-toggle.msw-button.record-active {
   color: var(--button-tint);
   border-color: var(--button-tint);
+}
+
+.record-toggle.msw-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .button-group .msw-button:hover {
