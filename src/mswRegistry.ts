@@ -1,6 +1,8 @@
 import {
   http,
   HttpResponse,
+  passthrough,
+  bypass,
   type DefaultBodyType,
   type HttpResponseResolver,
   type HttpHandler,
@@ -27,6 +29,54 @@ const HANDLER_DELAY_KEY = "msw-handler-delays";
 const OVERRIDES_KEY = "msw-overrides";
 const CUSTOM_SCENARIOS_KEY = "msw-custom-scenarios";
 const CUSTOM_PRESETS_KEY = "msw-custom-presets";
+
+// Normalize legacy storage data on plugin load
+const normalizeStorageData = () => {
+  try {
+    // Normalize scenarios
+    const storedScenarios = localStorage.getItem(STORAGE_KEY);
+    if (storedScenarios) {
+      const scenarios = JSON.parse(storedScenarios);
+      let hasChanges = false;
+      const normalized: Record<string, string> = {};
+      for (const [key, value] of Object.entries(scenarios)) {
+        if (value === "original") {
+          normalized[key] = "default";
+          hasChanges = true;
+        } else {
+          normalized[key] = value as string;
+        }
+      }
+      if (hasChanges) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+      }
+    }
+
+    // Normalize presets
+    const storedPresets = localStorage.getItem(CUSTOM_PRESETS_KEY);
+    if (storedPresets) {
+      const presets = JSON.parse(storedPresets) as Array<{
+        name: string;
+        scenarios: Record<string, string>;
+      }>;
+      let hasChanges = false;
+      for (const preset of presets) {
+        for (const [key, value] of Object.entries(preset.scenarios)) {
+          if (value === "original") {
+            preset.scenarios[key] = "default";
+            hasChanges = true;
+          }
+        }
+      }
+      if (hasChanges) {
+        localStorage.setItem(CUSTOM_PRESETS_KEY, JSON.stringify(presets));
+      }
+    }
+  } catch {
+    // Ignore errors on normalization
+  }
+};
+normalizeStorageData();
 
 const getPersistedScenarios = (): Record<string, string> => {
   try {
@@ -90,6 +140,7 @@ export const customScenarios = reactive<
 >(getPersistedCustomScenarios());
 export const customPresets = reactive<Preset[]>(getPersistedCustomPresets());
 export const globalDelay = ref(Number(localStorage.getItem(DELAY_KEY)) || 0);
+export const recordPassthrough = ref(false);
 
 export const scenarioRegistry = reactive<Record<string, HandlerMetadata>>({});
 export const activityLog = reactive<LogEntry[]>([]);
@@ -112,6 +163,7 @@ let baseHandlers: any[] = [];
 let urlResolver: (url: string) => string = (url) => url;
 
 const BUILT_IN_SCENARIOS: Record<string, HttpResponseResolver> = {
+  passthrough: () => passthrough(),
   ServerError: () => new HttpResponse(null, { status: 500 }),
 };
 
@@ -163,7 +215,7 @@ const registerInternal = (config: {
 
   const originalScenarios = Object.keys(scenarios);
 
-  // Registrar metadatos
+  // Register metadata
   scenarioRegistry[key] = {
     url,
     method: method.toUpperCase(),
@@ -172,20 +224,23 @@ const registerInternal = (config: {
     scenarios: [
       ...originalScenarios,
       ...Object.keys(customScenarios[key] || {}),
-    ].filter((v, i, a) => a.indexOf(v) === i), // Unificar y evitar duplicados
+    ].filter((v, i, a) => a.indexOf(v) === i), // Merge and avoid duplicates
   };
 
-  // Inicializar estado si no existe (URL tiene prioridad sobre persistencia)
+  // Initialize state if missing (URL has priority over persistence)
   const urlParams = new URLSearchParams(window.location.search);
   const urlValue = urlParams.get(key);
 
   if (urlValue) {
     scenarioState[key] = urlValue;
-  } else if (!scenarioState[key]) {
+  } else if (scenarioState[key]) {
+    // Already normalized in normalizeStorageData()
+    scenarioState[key] = scenarioState[key];
+  } else {
     scenarioState[key] = effectiveDefault;
   }
 
-  // Inicializar delay si no existe
+  // Initialize delay if missing
   if (handlerDelays[key] === undefined) {
     handlerDelays[key] = 0;
   }
@@ -214,6 +269,86 @@ const registerInternal = (config: {
         currentUrlParams.get(key) || scenarioState[key] || effectiveDefault;
 
       const override = customOverrides[key];
+
+      const isPassthroughActive = activeScenarioKey === "passthrough";
+
+      if (isPassthroughActive) {
+        const headers: Record<string, string> = {};
+        request.headers.forEach((value: string, k: string) => {
+          headers[k] = value;
+        });
+        const urlObj = new URL(request.url);
+        const queryParams: Record<string, string> = {};
+        urlObj.searchParams.forEach((value: string, k: string) => {
+          queryParams[k] = value;
+        });
+
+        if (recordPassthrough.value) {
+          // RECORDING MODE: Use bypass() to capture the response
+          try {
+            const proxyRequest = request.clone();
+            const realResponse = await fetch(bypass(proxyRequest));
+            const responseForLog = realResponse.clone();
+
+            let responseBodyLog: unknown;
+            const contentType = responseForLog.headers.get("content-type");
+            if (contentType?.includes("application/json")) {
+              responseBodyLog = await responseForLog
+                .json()
+                .catch(() => undefined);
+            } else {
+              responseBodyLog = await responseForLog
+                .text()
+                .catch(() => undefined);
+            }
+
+            activityLog.unshift({
+              id: Math.random().toString(36).substring(2),
+              timestamp: Date.now(),
+              key,
+              scenario: "⏺️ REAL API (Recorded)",
+              method: method.toUpperCase(),
+              url: request.url,
+              status: realResponse.status,
+              requestBody,
+              responseBody: responseBodyLog,
+              headers,
+              queryParams,
+              pathParams: params as Record<string, string>,
+            });
+            if (activityLog.length > 100) activityLog.pop();
+            return realResponse;
+          } catch (error) {
+            // eslint-disable-next-line no-console
+            console.error(
+              "[MSW Devtools] Error en grabación Passthrough:",
+              error,
+            );
+            return new HttpResponse(null, {
+              status: 502,
+              statusText: "Bad Gateway",
+            });
+          }
+        } else {
+          // CLEAN MODE: Use native passthrough()
+          activityLog.unshift({
+            id: Math.random().toString(36).substring(2),
+            timestamp: Date.now(),
+            key,
+            scenario: "🌐 REAL API (Passthrough)",
+            method: method.toUpperCase(),
+            url: request.url,
+            status: 0,
+            requestBody,
+            responseBody: "__PASSTHROUGH_NO_RECORD__",
+            headers,
+            queryParams,
+            pathParams: params as Record<string, string>,
+          });
+          if (activityLog.length > 100) activityLog.pop();
+          return passthrough();
+        }
+      }
 
       let response: HttpResponse<DefaultBodyType> | undefined;
 
@@ -422,9 +557,9 @@ export const setupMswRegistry = (
           method: methodLower as any,
           isNative: true,
           scenarios: {
-            original: handler.resolver || handler.run,
+            default: handler.resolver || handler.run,
           },
-          defaultScenario: "original",
+          defaultScenario: "default",
         });
       }
     });
@@ -455,7 +590,7 @@ export const applyPreset = (presetName: string) => {
   const preset = allPresets.find((p) => p.name === presetName);
   if (preset) {
     Object.entries(preset.scenarios).forEach(([key, scenario]) => {
-      // Solo aplicar si el handler existe
+      // Apply only if the handler exists
       if (scenarioRegistry[key]) {
         scenarioState[key] = scenario;
       }

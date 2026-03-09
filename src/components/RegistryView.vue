@@ -169,7 +169,10 @@
                 N
               </span>
               <span
-                v-if="customOverrides[key]?.enabled"
+                v-if="
+                  customOverrides[key]?.enabled &&
+                  scenarioState[key] !== 'passthrough'
+                "
                 class="override-indicator"
                 title="Manual override active"
               >
@@ -213,7 +216,14 @@
                 :key="scenario"
                 :value="scenario"
               >
-                {{ scenario }}{{ isCustomScenario(key, scenario) ? " ✨" : "" }}
+                {{ scenario === "passthrough" ? "Real API" : scenario
+                }}{{
+                  scenario === "passthrough"
+                    ? " 🌐"
+                    : isCustomScenario(key, scenario)
+                      ? " ✨"
+                      : ""
+                }}
               </option>
             </select>
           </td>
@@ -227,6 +237,10 @@
                 step="50"
                 placeholder="0"
                 class="handler-delay-input"
+                :disabled="scenarioState[key] === 'passthrough'"
+                :style="{
+                  opacity: scenarioState[key] === 'passthrough' ? '0.5' : '1',
+                }"
                 @click.stop
               />
               <span class="ms-label">ms</span>
@@ -240,7 +254,11 @@
                 size="sm"
                 @click.stop="emit('open-override', key)"
                 class="icon-button"
-                :class="{ 'has-override': customOverrides[key]?.enabled }"
+                :class="{
+                  'has-override':
+                    customOverrides[key]?.enabled &&
+                    scenarioState[key] !== 'passthrough',
+                }"
                 title="Custom response override"
               >
                 <svg
@@ -364,11 +382,8 @@ const isAllSelected = computed({
 });
 
 const isModified = (key: string) => {
-  const handler = scenarioRegistry[key];
-  const defaultScenario = handler?.isNative ? "original" : "default";
-
   const scenarioModified =
-    scenarioState[key] && scenarioState[key] !== defaultScenario;
+    scenarioState[key] && scenarioState[key] !== "default";
   const delayModified = (handlerDelays[key] || 0) > 0;
   const hasOverride = customOverrides[key]?.enabled;
   return scenarioModified || delayModified || hasOverride;
@@ -750,10 +765,6 @@ watch(showOnlyModified, (newValue) => {
   background-color: var(--table-hover);
 }
 
-.registry-table tr.is-modified {
-  background-color: var(--accent-soft);
-}
-
 .registry-table tr.is-selected {
   background-color: var(--bg-tertiary) !important;
 }
@@ -869,7 +880,6 @@ watch(showOnlyModified, (newValue) => {
 
 .scenario-select.is-modified {
   border-color: var(--accent-color);
-  background-color: var(--accent-soft);
   font-weight: 600;
 }
 

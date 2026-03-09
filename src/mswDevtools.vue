@@ -18,37 +18,123 @@
     >
       <div class="panel-header">
         <h2 id="msw-devtools-title" class="panel-title">MSW Devtools</h2>
-        <div class="tab-buttons">
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'registry'"
-            class="tab-button"
-            :class="{ active: activeTab === 'registry' }"
-          >
-            Registry
-          </MswButton>
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'presets'"
-            class="tab-button"
-            :class="{ active: activeTab === 'presets' }"
-          >
-            Presets
-          </MswButton>
-          <MswButton
-            type="button"
-            variant="ghost"
-            size="sm"
-            @click="activeTab = 'log'"
-            class="tab-button"
-            :class="{ active: activeTab === 'log' }"
-          >
-            Activity Log ({{ activityLog.length }})
-          </MswButton>
+        <div class="tab-bar">
+          <div class="tab-buttons">
+            <MswButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'registry'"
+              class="tab-button"
+              :class="{ active: activeTab === 'registry' }"
+            >
+              Registry
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'presets'"
+              class="tab-button"
+              :class="{ active: activeTab === 'presets' }"
+            >
+              Presets
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="ghost"
+              size="sm"
+              @click="activeTab = 'log'"
+              class="tab-button"
+              :class="{ active: activeTab === 'log' }"
+            >
+              Activity Log ({{ activityLog.length }})
+            </MswButton>
+          </div>
+          <div class="action-group">
+            <MswButton
+              type="button"
+              variant="ghost"
+              @click="toggleGlobalPassthrough"
+              class="passthrough-toggle"
+              :class="{
+                active: passthroughStatus === 'all',
+                partial: passthroughStatus === 'some',
+              }"
+              :title="
+                passthroughStatus === 'all'
+                  ? 'Disable Global Passthrough (Restore previous state)'
+                  : passthroughStatus === 'some'
+                    ? 'Enable Global Passthrough (Currently mixed)'
+                    : 'Enable Global Passthrough (Save state and set all to passthrough)'
+              "
+              aria-label="Toggle Global Passthrough"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  fill="none"
+                  :stroke-dasharray="
+                    passthroughStatus === 'some' ? '4 4' : 'none'
+                  "
+                />
+                <path d="M2 12h20" stroke="currentColor" />
+                <path
+                  d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
+                  stroke="currentColor"
+                />
+              </svg>
+              <span class="passthrough-text">
+                {{
+                  passthroughStatus === "all"
+                    ? "Real API"
+                    : passthroughStatus === "some"
+                      ? "Mixed"
+                      : "Mocked"
+                }}
+              </span>
+            </MswButton>
+            <MswButton
+              type="button"
+              variant="icon"
+              size="sm"
+              @click="recordPassthrough = !recordPassthrough"
+              class="record-toggle"
+              :class="{ 'record-active': recordPassthrough }"
+              :disabled="passthroughStatus === 'none'"
+              :aria-pressed="recordPassthrough"
+              :title="
+                passthroughStatus === 'none'
+                  ? 'Enable passthrough mode to record API responses'
+                  : 'Record real API responses (Note: This will duplicate requests in the Network tab)'
+              "
+              aria-label="Toggle Record Passthrough"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="8" fill="currentColor" />
+              </svg>
+            </MswButton>
+          </div>
         </div>
         <div class="panel-actions">
           <MswButton
@@ -168,14 +254,6 @@
               </svg>
             </MswButton>
           </div>
-          <MswButton
-            v-if="activeTab === 'log'"
-            type="button"
-            @click="clearActivityLog"
-            title="Clear log"
-          >
-            Clear Log
-          </MswButton>
           <input
             type="file"
             ref="importFile"
@@ -301,7 +379,7 @@
 </template>
 
 <script setup lang="ts">
-import { nextTick, onMounted, onUnmounted, ref, watch } from "vue";
+import { nextTick, onMounted, onUnmounted, ref, watch, computed } from "vue";
 import ActivityLogView from "./components/ActivityLogView.vue";
 import ExportOptionsModal from "./components/ExportOptionsModal.vue";
 import MswButton from "./components/MswButton.vue";
@@ -311,12 +389,12 @@ import PresetsView from "./components/PresetsView.vue";
 import RegistryView from "./components/RegistryView.vue";
 import {
   activityLog,
-  clearActivityLog,
   customOverrides,
   customPresets,
   customScenarios,
   globalDelay,
   handlerDelays,
+  recordPassthrough,
   scenarioRegistry,
   scenarioState,
 } from "./mswRegistry";
@@ -330,6 +408,61 @@ const resetMenuContainer = ref<HTMLElement | null>(null);
 const theme = ref<"light" | "dark">(
   (localStorage.getItem("msw-devtools-theme") as "light" | "dark") || "dark",
 );
+
+const PASSTHROUGH_SNAPSHOT_KEY = "msw-passthrough-snapshot";
+const passthroughSnapshot = ref<Record<string, string> | null>(
+  JSON.parse(localStorage.getItem(PASSTHROUGH_SNAPSHOT_KEY) || "null"),
+);
+
+watch(
+  passthroughSnapshot,
+  (newVal) => {
+    if (newVal) {
+      localStorage.setItem(PASSTHROUGH_SNAPSHOT_KEY, JSON.stringify(newVal));
+    } else {
+      localStorage.removeItem(PASSTHROUGH_SNAPSHOT_KEY);
+    }
+  },
+  { deep: true },
+);
+
+const passthroughStatus = computed<"all" | "some" | "none">(() => {
+  const keys = Object.keys(scenarioRegistry);
+  if (keys.length === 0) return "none";
+  const passthroughCount = keys.filter(
+    (key) => scenarioState[key] === "passthrough",
+  ).length;
+  if (passthroughCount === 0) return "none";
+  if (passthroughCount === keys.length) return "all";
+  return "some";
+});
+
+const toggleGlobalPassthrough = () => {
+  const keys = Object.keys(scenarioRegistry);
+
+  if (passthroughStatus.value === "all") {
+    // RESTAURAR: Devolver los handlers a su estado previo (o 'default')
+    const snapshot = passthroughSnapshot.value;
+    keys.forEach((key) => {
+      scenarioState[key] =
+        snapshot && snapshot[key] ? snapshot[key] : "default";
+    });
+    passthroughSnapshot.value = null; // Limpiar snapshot
+    recordPassthrough.value = false; // Apagar la grabación efímera
+  } else {
+    // PAUSAR MOCKS: Tomar snapshot y forzar todos a passthrough
+    const currentSnapshot: Record<string, string> = {};
+    keys.forEach((key) => {
+      const currentScenario = scenarioState[key];
+      if (currentScenario) {
+        currentSnapshot[key] = currentScenario;
+      }
+      scenarioState[key] = "passthrough";
+      // Ya no borramos los overrides, mswRegistry.ts los ignora automaticamente
+    });
+    passthroughSnapshot.value = currentSnapshot;
+  }
+};
 
 const showExportDialog = ref(false);
 const exportOptions = ref<ExportOptions>({
@@ -440,8 +573,7 @@ const handleOutsideClick = (event: MouseEvent) => {
 
 const resetScenariosOnly = () => {
   Object.keys(scenarioState).forEach((key) => {
-    const handler = scenarioRegistry[key];
-    scenarioState[key] = handler?.isNative ? "original" : "default";
+    scenarioState[key] = "default";
   });
 
   // Also clear overrides as they affects the scenario returned
@@ -471,8 +603,7 @@ const clearConfigs = () => {
 
   // Reset all scenarios to their appropriate default in the reactive state
   Object.keys(scenarioState).forEach((key) => {
-    const handler = scenarioRegistry[key];
-    scenarioState[key] = handler?.isNative ? "original" : "default";
+    scenarioState[key] = "default";
   });
 
   // Reset all handler delays to 0
@@ -503,6 +634,10 @@ const clearConfigs = () => {
 
   // Reset global delay
   globalDelay.value = 0;
+
+  // Reset passthrough state
+  passthroughSnapshot.value = null;
+  recordPassthrough.value = false;
 
   showResetMenu.value = false;
 };
@@ -786,10 +921,18 @@ watch(isOpen, (newValue) => {
   margin: 0;
 }
 
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 1.5rem;
+  flex: 1;
+}
+
 .tab-buttons {
   display: flex;
   gap: 0.5rem;
-  margin: 0 1.5rem;
+  margin: 0;
   background-color: var(--bg-tertiary);
   padding: 0.25rem;
   border-radius: 0.75rem;
@@ -852,6 +995,75 @@ watch(isOpen, (newValue) => {
   border-color: var(--accent-color);
   color: white;
   z-index: 2;
+}
+
+.button-group .msw-button.partial {
+  color: #f59e0b;
+}
+
+.action-group {
+  display: flex;
+  gap: 0.25rem;
+  background-color: var(--bg-tertiary);
+  padding: 0.25rem;
+  border-radius: 0.75rem;
+  align-items: center;
+}
+
+.passthrough-toggle {
+  --button-tint: #3b82f6;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 2rem;
+  padding: 0 0.65rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.passthrough-toggle.msw-button:not(.active):not(.partial) {
+  color: var(--text-tertiary);
+}
+
+.passthrough-text {
+  white-space: nowrap;
+}
+
+.passthrough-toggle.msw-button.active,
+.passthrough-toggle.msw-button:hover {
+  background-color: var(--button-tint);
+  border-color: var(--button-tint);
+  color: white;
+}
+
+.passthrough-toggle.msw-button:not(.active):not(.partial):hover {
+  color: white;
+}
+
+.passthrough-toggle.msw-button.partial {
+  color: var(--button-tint);
+  border-color: var(--button-tint);
+}
+
+.passthrough-toggle.msw-button.partial:hover {
+  background-color: var(--button-tint);
+  border-color: var(--button-tint);
+  color: white;
+}
+
+.record-toggle {
+  --button-tint: #ef4444;
+}
+
+.record-toggle.msw-button:not(:disabled):hover,
+.record-toggle.msw-button.record-active {
+  color: var(--button-tint);
+  border-color: var(--button-tint);
+}
+
+.record-toggle.msw-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .button-group .msw-button:hover {
