@@ -286,8 +286,7 @@ const registerInternal = (config: {
         if (recordPassthrough.value) {
           // RECORDING MODE: Use bypass() to capture the response
           try {
-            const proxyRequest = request.clone();
-            const realResponse = await fetch(bypass(proxyRequest));
+            const realResponse = await fetch(bypass(request));
             const responseForLog = realResponse.clone();
 
             let responseBodyLog: unknown;
@@ -306,7 +305,7 @@ const registerInternal = (config: {
               id: Math.random().toString(36).substring(2),
               timestamp: Date.now(),
               key,
-              scenario: "⏺️ REAL API (Recorded)",
+              scenario: "🌐 Real API (Recorded)",
               method: method.toUpperCase(),
               url: request.url,
               status: realResponse.status,
@@ -319,11 +318,22 @@ const registerInternal = (config: {
             if (activityLog.length > 100) activityLog.pop();
             return realResponse;
           } catch (error) {
-            // eslint-disable-next-line no-console
-            console.error(
-              "[MSW Devtools] Error en grabación Passthrough:",
-              error,
-            );
+            activityLog.unshift({
+              id: Math.random().toString(36).substring(2),
+              timestamp: Date.now(),
+              key,
+              scenario: "❌ Real API (Error Recorded)",
+              method: method.toUpperCase(),
+              url: request.url,
+              status: 0,
+              requestBody,
+              responseBody: `Network Error: ${error instanceof Error ? error.message : String(error)}`,
+              headers,
+              queryParams,
+              pathParams: params as Record<string, string>,
+            });
+            if (activityLog.length > 100) activityLog.pop();
+
             return new HttpResponse(null, {
               status: 502,
               statusText: "Bad Gateway",
@@ -335,7 +345,7 @@ const registerInternal = (config: {
             id: Math.random().toString(36).substring(2),
             timestamp: Date.now(),
             key,
-            scenario: "🌐 REAL API (Passthrough)",
+            scenario: "🌐 Real API (Not Recorded)",
             method: method.toUpperCase(),
             url: request.url,
             status: 0,

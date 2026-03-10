@@ -33,9 +33,9 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
     await devToolsPage.toggle();
     await devToolsPage.switchTab("Activity Log");
 
-    // The activity log should contain a REAL API (Passthrough) entry for users
+    // The activity log should contain a Real API entry for users
     const logEntry = dialog.getByRole("listitem").filter({
-      hasText: "REAL API",
+      hasText: "Real API",
     });
     await expect(logEntry.first()).toBeVisible();
   });
@@ -183,5 +183,43 @@ test.describe("MSW DevTools - Passthrough Mode", () => {
     });
     await expect(recordBtnAfterReload).toBeVisible();
     await expect(recordBtnAfterReload).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("should log a network error when recorded passthrough fetch fails", async ({
+    page,
+  }) => {
+    const dialog = devToolsPage.dialog;
+
+    const globalPassthroughBtn = dialog.getByRole("button", {
+      name: "Toggle Global Passthrough",
+    });
+    await globalPassthroughBtn.click();
+
+    const recordBtn = dialog.getByRole("button", {
+      name: "Toggle Record Passthrough",
+    });
+    await recordBtn.click();
+    await expect(recordBtn).toHaveAttribute("aria-pressed", "true");
+
+    await page.context().setOffline(true);
+    await devToolsPage.close();
+
+    await page.getByRole("button", { name: /Fetch Users/ }).click();
+    await expect(page.locator("#response-output")).toContainText(
+      "Status: 502 Bad Gateway",
+    );
+
+    await page.context().setOffline(false);
+
+    await devToolsPage.toggle();
+    await devToolsPage.switchTab("Activity Log");
+
+    await devToolsPage.expectLogEntry({
+      method: "GET",
+      url: "/api/users",
+      key: "users",
+      scenario: "❌ Real API (Error Recorded)",
+      status: 0,
+    });
   });
 });
