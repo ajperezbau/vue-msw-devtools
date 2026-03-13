@@ -39,7 +39,7 @@
     "test:ui": "playwright test --ui"
   },
   "dependencies": {
-    "vue": "^3.0.0"
+    "vue": "^3.2.0"
   },
   "peerDependencies": {
     "msw": "^2.0.0"
