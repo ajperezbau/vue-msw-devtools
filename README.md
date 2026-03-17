@@ -1,5 +1,9 @@
 # Vue MSW DevTools
 
+> [!WARNING]
+> **This package is deprecated.** Please use [@ajperezbau/msw-devtools](https://www.npmjs.com/package/@ajperezbau/msw-devtools) instead.
+> The new package is **framework-agnostic** and will continue to receive updates and improvements.
+
 A powerful browser-based UI for managing [Mock Service Worker (MSW)](https://mswjs.io/) handlers in Vue 3 applications. This library allows you to dynamically switch between different response scenarios, override responses on the fly, and inspect network activity handled by MSW.
 
 ## Features
