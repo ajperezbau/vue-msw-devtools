@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onActivated,
-  onMounted,
-  ref,
-  useAttrs,
-} from "vue";
+import { computed, nextTick, onActivated, ref, useAttrs } from "vue";
 
 defineOptions({ inheritAttrs: false });
 
@@ -58,10 +51,6 @@ const applyAutofocus = async () => {
   await nextTick();
   inputRef.value?.focus();
 };
-
-onMounted(() => {
-  void applyAutofocus();
-});
 
 onActivated(() => {
   void applyAutofocus();
