@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { computed, useAttrs } from "vue";
+import {
+  computed,
+  nextTick,
+  onActivated,
+  onMounted,
+  ref,
+  useAttrs,
+} from "vue";
 
 defineOptions({ inheritAttrs: false });
 
@@ -9,11 +16,13 @@ const props = withDefaults(
     type?: string;
     variant?: "default" | "inline";
     size?: "sm" | "md";
+    autofocus?: boolean;
   }>(),
   {
     type: "text",
     variant: "default",
     size: "md",
+    autofocus: false,
   },
 );
 
@@ -22,6 +31,7 @@ const emit = defineEmits<{
 }>();
 
 const attrs = useAttrs();
+const inputRef = ref<HTMLInputElement | null>(null);
 
 const restAttrs = computed(() => {
   const { class: _class, ...rest } = attrs as Record<string, unknown>;
@@ -42,10 +52,25 @@ const onInput = (event: Event) => {
   const value = (event.target as HTMLInputElement).value;
   emit("update:modelValue", value);
 };
+
+const applyAutofocus = async () => {
+  if (!props.autofocus) return;
+  await nextTick();
+  inputRef.value?.focus();
+};
+
+onMounted(() => {
+  void applyAutofocus();
+});
+
+onActivated(() => {
+  void applyAutofocus();
+});
 </script>
 
 <template>
   <input
+    ref="inputRef"
     :type="type"
     :value="modelValue ?? ''"
     v-bind="restAttrs"
